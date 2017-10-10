@@ -1,0 +1,5 @@
+<map id="modules.FakeModule" name="modules.FakeModule">
+<area shape="rect" id="node2" href="$classmodules_1_1_time_operation_module.html" title="Same as an OperationModule but this class allows to connect itself with the output of an other module..." alt="" coords="5,155,208,181"/>
+<area shape="rect" id="node3" href="$classmodules_1_1_operation_module.html" title="An operation module is a module that can perform an operation on the output of an other module in the..." alt="" coords="20,80,193,107"/>
+<area shape="rect" id="node4" href="$classmodules_1_1_module.html" title="Base class of a module. " alt="" coords="48,5,165,32"/>
+</map>

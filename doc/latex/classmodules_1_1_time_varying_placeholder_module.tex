@@ -1,0 +1,54 @@
+\hypertarget{classmodules_1_1_time_varying_placeholder_module}{}\section{modules.\+Time\+Varying\+Placeholder\+Module Class Reference}
+\label{classmodules_1_1_time_varying_placeholder_module}\index{modules.\+Time\+Varying\+Placeholder\+Module@{modules.\+Time\+Varying\+Placeholder\+Module}}
+
+
+\hyperlink{classmodules_1_1_module}{Module} to reserve a place to feed in data.  
+
+
+
+
+Inheritance diagram for modules.\+Time\+Varying\+Placeholder\+Module\+:\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=242pt]{classmodules_1_1_time_varying_placeholder_module__inherit__graph}
+\end{center}
+\end{figure}
+\subsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classmodules_1_1_time_varying_placeholder_module_aabf6878d8bd17b00fbdbe1e0a8fe9c0a}\label{classmodules_1_1_time_varying_placeholder_module_aabf6878d8bd17b00fbdbe1e0a8fe9c0a}} 
+def {\bfseries \+\_\+\+\_\+init\+\_\+\+\_\+} (self, name, shape, dtype=tf.\+float32)
+\item 
+\mbox{\Hypertarget{classmodules_1_1_time_varying_placeholder_module_ac6514ecbe9d187d657fc86c071e2e756}\label{classmodules_1_1_time_varying_placeholder_module_ac6514ecbe9d187d657fc86c071e2e756}} 
+def {\bfseries get\+\_\+max\+\_\+time} (self)
+\item 
+\mbox{\Hypertarget{classmodules_1_1_time_varying_placeholder_module_a432646952b2df102f5da026f66addf7c}\label{classmodules_1_1_time_varying_placeholder_module_a432646952b2df102f5da026f66addf7c}} 
+def {\bfseries need\+\_\+to\+\_\+create\+\_\+output} (self, t)
+\item 
+\mbox{\Hypertarget{classmodules_1_1_time_varying_placeholder_module_a4e07fcf5b491485a38fa42dd9e2fc8c7}\label{classmodules_1_1_time_varying_placeholder_module_a4e07fcf5b491485a38fa42dd9e2fc8c7}} 
+def {\bfseries shift\+\_\+by\+\_\+one} (self)
+\item 
+\mbox{\Hypertarget{classmodules_1_1_time_varying_placeholder_module_a8c97b431ed39651472ff304b03e04036}\label{classmodules_1_1_time_varying_placeholder_module_a8c97b431ed39651472ff304b03e04036}} 
+def {\bfseries delayed} (self, v)
+\item 
+\mbox{\Hypertarget{classmodules_1_1_time_varying_placeholder_module_a26a9bfa037aae7d52b975e27e1476ccc}\label{classmodules_1_1_time_varying_placeholder_module_a26a9bfa037aae7d52b975e27e1476ccc}} 
+def {\bfseries create\+\_\+output} (self, t)
+\end{DoxyCompactItemize}
+\subsection*{Properties}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\Hypertarget{classmodules_1_1_time_varying_placeholder_module_af20479b3474a90c46f4bde69f2f07271}\label{classmodules_1_1_time_varying_placeholder_module_af20479b3474a90c46f4bde69f2f07271}} 
+{\bfseries max\+\_\+time} = property(get\+\_\+max\+\_\+time)
+\end{DoxyCompactItemize}
+\subsection*{Additional Inherited Members}
+
+
+\subsection{Detailed Description}
+\hyperlink{classmodules_1_1_module}{Module} to reserve a place to feed in data. 
+
+It remembers the input wich is fed by the user and roll it so that at each time slice the network sees a new value. This module takes no input. 
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+/home/cwilmot/\+Documents/\+F\+I\+A\+S/phd/code/python/modules/src/modules.\+py\end{DoxyCompactItemize}

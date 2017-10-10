@@ -1,0 +1,7 @@
+<map id="modules.TimeConvolutionalLayerModule" name="modules.TimeConvolutionalLayerModule">
+<area shape="rect" id="node2" href="$classmodules_1_1_time_composed_module.html" title="This class is an abstract class which allows when overwritten to create a module that is composed of ..." alt="" coords="103,244,313,271"/>
+<area shape="rect" id="node3" href="$classmodules_1_1_abstract_composed_module.html" title="modules.AbstractComposed\lModule" alt="" coords="5,155,192,196"/>
+<area shape="rect" id="node4" href="$classmodules_1_1_module.html" title="Base class of a module. " alt="" coords="160,5,277,32"/>
+<area shape="rect" id="node6" href="$classmodules_1_1_operation_module.html" title="An operation module is a module that can perform an operation on the output of an other module in the..." alt="" coords="207,80,380,107"/>
+<area shape="rect" id="node5" href="$classmodules_1_1_time_operation_module.html" title="Same as an OperationModule but this class allows to connect itself with the output of an other module..." alt="" coords="216,162,419,189"/>
+</map>

@@ -1,0 +1,27 @@
+<map id="modules.Module" name="modules.Module">
+<area shape="rect" id="node2" href="$classmodules_1_1_abstract_composed_module.html" title="modules.AbstractComposed\lModule" alt="" coords="171,129,357,171"/>
+<area shape="rect" id="node8" href="$classmodules_1_1_operation_module.html" title="An operation module is a module that can perform an operation on the output of an other module in the..." alt="" coords="177,365,351,391"/>
+<area shape="rect" id="node24" href="$classmodules_1_1_placeholder_module.html" title="A placeholder module is a module that takes no input. " alt="" coords="171,651,357,678"/>
+<area shape="rect" id="node3" href="$classmodules_1_1_composed_module.html" title="This class is an abstract class which allows when overwritten to create a module that is composed of ..." alt="" coords="423,82,603,109"/>
+<area shape="rect" id="node6" href="$classmodules_1_1_time_composed_module.html" title="This class is an abstract class which allows when overwritten to create a module that is composed of ..." alt="" coords="678,137,887,163"/>
+<area shape="rect" id="node4" href="$classmodules_1_1_convolutional_layer_module.html" title="This composed module performs a convolution and applies a bias and an activation function. " alt="" coords="689,71,876,112"/>
+<area shape="rect" id="node5" href="$classmodules_1_1_fully_connected_layer_module.html" title="This composed module performs a full connection and applies a bias and an activation function..." alt="" coords="683,5,882,47"/>
+<area shape="rect" id="node7" href="$classmodules_1_1_time_convolutional_layer_module.html" title="This composed module performs a convolution and applies a bias and an activation function. " alt="" coords="944,129,1127,171"/>
+<area shape="rect" id="node9" href="$classmodules_1_1_activation_module.html" title="Apply an activation function on its input module. " alt="" coords="426,339,601,366"/>
+<area shape="rect" id="node10" href="$classmodules_1_1_add_module.html" title="This module computes the sum of all its input. " alt="" coords="443,390,583,417"/>
+<area shape="rect" id="node11" href="$classmodules_1_1_batch_accuracy_module.html" title="Module to compute the classification accuracy. " alt="" coords="410,441,617,467"/>
+<area shape="rect" id="node12" href="$classmodules_1_1_error_module.html" title="Module to compute an error (or apply any tensorflow operation on two and only two tensors) ..." alt="" coords="441,491,586,518"/>
+<area shape="rect" id="node13" href="$classmodules_1_1_flatten_module.html" title="Module to flatten the output of the input module. " alt="" coords="435,542,592,569"/>
+<area shape="rect" id="node14" href="$classmodules_1_1_max_pooling_module.html" title="Module to perform a maxpooling. " alt="" coords="421,593,606,619"/>
+<area shape="rect" id="node15" href="$classmodules_1_1_optimizer_module.html" title="Module to train a network. " alt="" coords="427,187,600,214"/>
+<area shape="rect" id="node16" href="$classmodules_1_1_time_operation_module.html" title="Same as an OperationModule but this class allows to connect itself with the output of an other module..." alt="" coords="412,238,615,265"/>
+<area shape="rect" id="node19" href="$classmodules_1_1_variable_module.html" title="This class allows a module to hold a tensorflow variable. " alt="" coords="431,289,595,315"/>
+<area shape="rect" id="node17" href="$classmodules_1_1_fake_module.html" title="For testing purpose only, does nothing. " alt="" coords="709,238,856,265"/>
+<area shape="rect" id="node18" href="$classmodules_1_1_time_add_module.html" title="This module computes the sum of all its input. " alt="" coords="698,187,867,214"/>
+<area shape="rect" id="node20" href="$classmodules_1_1_bias_module.html" title="Module to create a bias, that can be added to an other tensor inputs modules of this module are not t..." alt="" coords="711,441,854,467"/>
+<area shape="rect" id="node21" href="$classmodules_1_1_conv2_d_module.html" title="Module to perform a convolution. " alt="" coords="700,289,865,315"/>
+<area shape="rect" id="node22" href="$classmodules_1_1_conv2_d_transpose_module.html" title="Module to perform a deconvolution. " alt="" coords="669,339,896,366"/>
+<area shape="rect" id="node23" href="$classmodules_1_1_fully_connected_module.html" title="Module to perform a matrix multiplication. " alt="" coords="679,390,887,417"/>
+<area shape="rect" id="node25" href="$classmodules_1_1_constant_placeholder_module.html" title="Module to reserve a place to feed in data. " alt="" coords="415,709,611,751"/>
+<area shape="rect" id="node26" href="$classmodules_1_1_time_varying_placeholder_module.html" title="Module to reserve a place to feed in data. " alt="" coords="405,644,621,685"/>
+</map>

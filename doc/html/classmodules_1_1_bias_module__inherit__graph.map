@@ -1,0 +1,5 @@
+<map id="modules.BiasModule" name="modules.BiasModule">
+<area shape="rect" id="node2" href="$classmodules_1_1_variable_module.html" title="This class allows a module to hold a tensorflow variable. " alt="" coords="10,155,174,181"/>
+<area shape="rect" id="node3" href="$classmodules_1_1_operation_module.html" title="An operation module is a module that can perform an operation on the output of an other module in the..." alt="" coords="5,80,179,107"/>
+<area shape="rect" id="node4" href="$classmodules_1_1_module.html" title="Base class of a module. " alt="" coords="33,5,151,32"/>
+</map>

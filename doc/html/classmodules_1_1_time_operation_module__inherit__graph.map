@@ -1,0 +1,8 @@
+<map id="modules.TimeOperationModule" name="modules.TimeOperationModule">
+<area shape="rect" id="node4" href="$classmodules_1_1_fake_module.html" title="For testing purpose only, does nothing. " alt="" coords="5,229,152,256"/>
+<area shape="rect" id="node5" href="$classmodules_1_1_time_add_module.html" title="This module computes the sum of all its input. " alt="" coords="177,229,346,256"/>
+<area shape="rect" id="node6" href="$classmodules_1_1_time_composed_module.html" title="This class is an abstract class which allows when overwritten to create a module that is composed of ..." alt="" coords="370,229,579,256"/>
+<area shape="rect" id="node2" href="$classmodules_1_1_operation_module.html" title="An operation module is a module that can perform an operation on the output of an other module in the..." alt="" coords="175,80,348,107"/>
+<area shape="rect" id="node3" href="$classmodules_1_1_module.html" title="Base class of a module. " alt="" coords="203,5,320,32"/>
+<area shape="rect" id="node7" href="$classmodules_1_1_time_convolutional_layer_module.html" title="This composed module performs a convolution and applies a bias and an activation function. " alt="" coords="383,304,566,345"/>
+</map>
