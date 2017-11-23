@@ -59,8 +59,8 @@ def to_one_hot(ns):
     ret[range(bs), ns] = 1.0
     return ret
 
-BATCH_SIZE = 500
-TIME_DEPTH = 10
+BATCH_SIZE = 50
+TIME_DEPTH = 3
 
 train_images_name = "train-images-idx3-ubyte.gz"  #  training set images (9912422 bytes)
 train_data_filename = gm.maybe_download(train_images_name)
