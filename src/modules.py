@@ -10,6 +10,7 @@ class InputContainer(list):
         self.append(other)
         return self
 
+
 ## Base class of a module.
 #  @param name str, every module must have a name
 class Module:
@@ -167,7 +168,8 @@ class Conv2DTransposeModule(VariableModule):
     #  current time slice.
     #  This module can have a single input module.
     def operation(self, x):
-        return tf.nn.conv2d_transpose(x, self.weights, self.output_shape, strides=self.strides, padding=self.padding, name=self.name)
+        return tf.nn.conv2d_transpose(x, self.weights, self.output_shape,
+                                      strides=self.strides, padding=self.padding, name=self.name)
 
     ## Creates the filters (or weights) for the deconvolution according to the
     #  parameters given in the constructor
@@ -399,6 +401,7 @@ class TimeConvolutionalLayerModule(TimeComposedModule):
         self.preactivation.add_input(self.bias)
         self.output_module.add_input(self.preactivation)
 
+
 ## This composed module performs a full connection and applies a bias and an
 #  activation function. It does not allow recursions
 class FullyConnectedLayerModule(ComposedModule):
@@ -435,7 +438,6 @@ if __name__ == '__main__':
     fs = [f1, f2, f3, f4, f5]
     for f in fs:
         print(f.name, "---", f.outputs)
-
 
     # inp = InputModule(shape=(10, 8, 8, 1), name="input")
     # conv1 = Conv2DModule((4,4,1,3), (1,1,1,1), name="conv1")
