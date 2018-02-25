@@ -57,20 +57,20 @@ class PlaceholderModule(Module):
 
 ## An operation module is a module that can perform an operation on the output
 #  of an other module in the same time slice. This class is an abstract class.
-#  To inherit from it, overwrite the 'operation' methode in the following way:
-#  the operation methode should take as many parameters as there are modules
+#  To inherit from it, overwrite the 'operation' method in the following way:
+#  the operation method should take as many parameters as there are modules
 #  connected to it and return a tensorflow tensor. These parameters are the
 #  output tensors of the previous modules in the same time slice.
 #  See the implementation of child classes for more information
 class OperationModule(Module):
-    ## Methode to connect the module to the output of an other module in the
+    ## Method to connect the module to the output of an other module in the
     #  same time slice.
     #  mw_module.add_input(other_module)
     def add_input(self, other):
         self.inputs += other, 0
         return self
 
-    ## This methode has to be overwritten
+    ## This method has to be overwritten
     def operation(self, x):
         raise Exception("Calling abstract class, overwrite this function")
 
@@ -80,8 +80,8 @@ class OperationModule(Module):
 #  modules are separated to help the developer to keep the connectivity of his
 #  modules clear.
 class TimeOperationModule(OperationModule):
-    ## Methode to connect the module to the output of an other module in the
-    #  same OR AN OTHER time slice.
+    ## method to connect the module to the output of an other module in the
+    #  same OR ANY OTHER time slice.
     #  mw_module.add_input(other_module,  0) # same time slice
     #  mw_module.add_input(other_module, -1) # previous time slice
     #  connecting the module to a future time slice (ie t=1, 2...) makes no sens
@@ -91,26 +91,24 @@ class TimeOperationModule(OperationModule):
         self.inputs += other, t
         return self
 
+## For testing purpose only, does nothing
+class FakeModule(TimeOperationModule):
+    def operation(self, *args):
+        return self.name, args
 
 ## This class allows a module to hold a tensorflow variable. To do so, you have
-#  to overwrite the 'create_variables' methode. It is then automatically called
+#  to overwrite the 'create_variables' method. It is then automatically called
 #  by the constructor. See child classes for more details.
 class VariableModule(OperationModule):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.create_variables(self.name + "_var")
 
-    ## Methode to create tensorflow variables. This methode must be overwritten
+    ## method to create tensorflow variables. This method must be overwritten
     #  @param name str, implementation must be changed, the name can be accessed
     #  from self
     def create_variables(self, name):
         raise Exception("Calling abstract class, overwrite this function")
-
-
-## For testing purpose only, does nothing
-class FakeModule(TimeOperationModule):
-    def operation(self, *args):
-        return self.name, args
 
 
 ## Module to create a bias, that can be added to an other tensor
@@ -158,8 +156,8 @@ class Conv2DModule(VariableModule):
 class Conv2DTransposeModule(VariableModule):
     ## It takes the same argument as the tensorflow conv2d_transpose
     def __init__(self, name, filter_shape, strides, output_shape, padding='SAME'):
-        super().__init__(name, filter_shape, strides, output_shape, padding)
         self.filter_shape = filter_shape
+        super().__init__(name, filter_shape, strides, output_shape, padding)
         self.strides = strides
         self.output_shape = output_shape
         self.padding = padding
@@ -198,6 +196,35 @@ class FlattenModule(OperationModule):
     ## Returns the reshaped output tensor of the input module
     def operation(self, x):
         return tf.reshape(x, (x.shape[0].value, -1), name=self.name)
+
+
+## Returns element wise multiplication of inputs
+class EleMultiModule(TimeOperationModule):
+    def operation(self, *args):
+        x = args[0]
+        for y in args[1:]:
+            x = tf.multiply(x, y, name=self.name)
+        return x
+
+class ConcatModule(TimeOperationModule):
+    def __init__(self, name, axis, resulting_axis_shape):
+        self.axis = axis
+        self.resulting_axis_shape = resulting_axis_shape
+        super().__init__(name, axis)
+
+
+    # Return concatenated vector
+    def operation(self, *args):
+        new_axis_shape = sum([t.shape[self.axis].value for t in args])
+        if new_axis_shape > self.resulting_axis_shape:
+            raise Exception("Inputs are too big!")
+        if new_axis_shape < self.resulting_axis_shape:
+            shape = [s.value for s in args[0].shape]
+            shape[self.axis] = self.resulting_axis_shape - new_axis_shape
+            args = list(args)
+            args.append(tf.zeros(shape=shape, dtype=args[0].dtype))
+        return tf.concat(list(args), self.axis, name=self.name)  # stack them vertically
+
 
 
 ## Module to perform a matrix multiplication. Again, this module takes a single
@@ -267,9 +294,9 @@ class ConstantPlaceholderModule(PlaceholderModule):
         return self.placeholder
 
 
-## Module to reserve a place to feed in data. It remembers the input wich is fed
-# by the user and roll it so that at each time slice the network sees a new
-# value. This module takes no input.
+## Module to reserve a place to feed in data. It remembers the input which
+# is fed by the user and roll it so that at each time slice the network sees
+# a new value. This module takes no input.
 class TimeVaryingPlaceholderModule(PlaceholderModule):
     def __init__(self, name, shape, dtype=tf.float32):
         super().__init__(name, shape, dtype)
@@ -353,7 +380,7 @@ class AbstractComposedModule(Module):
 ## This class is an abstract class which allows when overwritten to create a
 #  module that is composed of other modules and accept recursions
 #  See the implementation of ConvolutionalLayerModule for more info.
-#  the methode 'define_inner_modules' must be overwritten,
+#  the method 'define_inner_modules' must be overwritten,
 #  the attribute input_module must be set to the module which is the input of
 #  the composed module
 #  the attribute output_module must be set to the module which is the output of
@@ -365,7 +392,7 @@ class TimeComposedModule(AbstractComposedModule, TimeOperationModule):
 ## This class is an abstract class which allows when overwritten to create a
 #  module that is composed of other modules and does not accept recursions
 #  See the implementation of ConvolutionalLayerModule for more info.
-#  the methode 'define_inner_modules' must be overwritten,
+#  the method 'define_inner_modules' must be overwritten,
 #  the attribute input_module must be set to the module which is the input of
 #  the composed module
 #  the attribute output_module must be set to the module which is the output of
