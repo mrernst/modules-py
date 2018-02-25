@@ -261,6 +261,18 @@ class ErrorModule(OperationModule):
     def operation(self, x1, x2):
         return self.error_func(x1, x2, name=self.name)
 
+## Module to add Dropout to a convolutional layer. This module takes a single
+# input module
+class DropoutModule(OperationModule):
+    def __init__(self, name, keep_prob, noise_shape=None, seed=None):
+        super().__init__(name, keep_prob, noise_shape, seed)
+        self.keep_prob = keep_prob
+        self.noise_shape = noise_shape
+        self.seed = seed
+
+    def operation(self, x):
+        return tf.nn.dropout(x, keep_prob=self.keep_prob, noise_shape=self.noise_shape,
+            seed=self.seed, name=self.name)
 
 ## Module to train a network. This module takes a single input module.
 class OptimizerModule(OperationModule):
