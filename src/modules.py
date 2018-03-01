@@ -111,6 +111,21 @@ class VariableModule(OperationModule):
         raise Exception("Calling abstract class, overwrite this function")
 
 
+class ConstantVariableModule(VariableModule):
+    def __init__(self, name, shape, dtype):
+        self.shape = shape
+        self.dtype = dtype
+        super().__init__(name, shape, dtype)
+
+    ## Always return the tensorflow Variable which holds the variable
+    def operation(self, *args):
+        return self.variable
+
+    ## instanciate the tensorflow Variable with the shape specified in the
+    #  constructor
+    def create_variables(self, name):
+        self.variable = tf.Variable(tf.zeros(shape=self.shape, dtype=self.dtype), name=name)
+
 ## Module to create a bias, that can be added to an other tensor
 #  inputs modules of this module are not taken into account
 class BiasModule(VariableModule):
@@ -123,7 +138,7 @@ class BiasModule(VariableModule):
     def operation(self, *args):
         return self.bias
 
-    ## instanciate the tensorflow Varaible with the shape specified in the
+    ## instanciate the tensorflow Variable with the shape specified in the
     #  constructor
     def create_variables(self, name):
         self.bias = tf.Variable(tf.zeros(shape=self.bias_shape), name=name)
@@ -261,18 +276,35 @@ class ErrorModule(OperationModule):
     def operation(self, x1, x2):
         return self.error_func(x1, x2, name=self.name)
 
-## Module to add Dropout to a convolutional layer. This module takes a single
-# input module
-class DropoutModule(OperationModule):
-    def __init__(self, name, keep_prob, noise_shape=None, seed=None):
-        super().__init__(name, keep_prob, noise_shape, seed)
-        self.keep_prob = keep_prob
-        self.noise_shape = noise_shape
-        self.seed = seed
 
-    def operation(self, x):
-        return tf.nn.dropout(x, keep_prob=self.keep_prob, noise_shape=self.noise_shape,
-            seed=self.seed, name=self.name)
+class DropoutModule(OperationModule):
+  """Module to add Dropout to a convolutional layer. This module takes a single input module"""
+  def __init__(self, name, keep_prob, noise_shape=None, seed=None):
+    super().__init__(name, keep_prob, noise_shape, seed)
+    self.keep_prob = keep_prob
+    self.noise_shape = noise_shape
+    self.seed = seed
+
+  def operation(self, x):
+    """operation takes inputs and performs a dropout on the input tensor"""
+    return tf.nn.dropout(x, keep_prob=self.keep_prob, noise_shape=self.noise_shape, seed=self.seed, name=self.name)
+
+
+class NormalizationModule(OperationModule):
+  """Module that takes an image tensor and normalizes it to values between inp_min and inp_max. This module
+  takes a single input module"""
+  def __init__(self, name, inp_max=1, inp_min=-1, dtype=tf.float32):
+    super().__init__(name, inp_max, inp_min)
+    self.inp_max = inp_max
+    self.inp_min = inp_min
+    self.dtype = dtype
+
+  def operation(self, x):
+    """operation takes an input tensor and returns a tensor the same size"""
+    casted_x = tf.cast(x, dtype=self.dtype)
+    rescaled_x = (casted_x / 255) * (self.inp_max - self.inp_min) - self.inp_min
+    return rescaled_x
+
 
 ## Module to train a network. This module takes a single input module.
 class OptimizerModule(OperationModule):
@@ -364,7 +396,11 @@ class ActivationModule(OperationModule):
 class TimeAddModule(TimeOperationModule):
     ## returns the sum of the output tensors of all its input modules
     def operation(self, *args):
-        return sum(args)
+        ret = args[0]
+        for e in args[1:]:
+            ret = tf.add(ret, e, name=self.name)
+        return ret
+        # return sum(args)
 
 
 ## This module computes the sum of all its input. It can have as many inputs
@@ -372,7 +408,11 @@ class TimeAddModule(TimeOperationModule):
 class AddModule(OperationModule):
     ## returns the sum of the output tensors of all its input modules
     def operation(self, *args):
-        return sum(args)
+        ret = args[0]
+        for e in args[1:]:
+            ret = tf.add(ret, e, name=self.name)
+        return ret
+        # return sum(args)
 
 
 class AbstractComposedModule(Module):
