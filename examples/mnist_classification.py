@@ -7,7 +7,7 @@ import numpy as np
 
 
 class Lenet5(mod.ComposedModule):
-    def define_inner_modules(self, name, activations, filter_shapes, strides, bias_shapes, ksizes, pool_strides):
+    def define_inner_modules(self, name, activations, filter_shapes, strides, bias_shapes, ksizes, pool_strides, keep_prob):
         self.layers = {}
         # first convolutional layer
         self.layers["conv0"] = mod.ConvolutionalLayerModule("conv0",
@@ -22,6 +22,8 @@ class Lenet5(mod.ComposedModule):
         self.layers["flat_pool1"] = mod.FlattenModule("flat_pool1")
         # first fully-connected layer
         self.layers["fc0"] = mod.FullyConnectedLayerModule("fc0", activations[2], int(np.prod(np.array(bias_shapes[1]) / np.array(pool_strides[1]))), np.prod(bias_shapes[2]))
+        # dropout
+        self.layers["dropout0"] = mod.DropoutModule("dropout0", keep_prob)
         # second fully-connected layer
         self.layers["fc1"] = mod.FullyConnectedLayerModule("fc1", activations[3], np.prod(bias_shapes[2]), np.prod(bias_shapes[3]))
         # connections
@@ -30,7 +32,8 @@ class Lenet5(mod.ComposedModule):
         self.layers["pool1"].add_input(self.layers["conv1"])
         self.layers["flat_pool1"].add_input(self.layers["pool1"])
         self.layers["fc0"].add_input(self.layers["flat_pool1"])
-        self.layers["fc1"].add_input(self.layers["fc0"])
+        self.layers["dropout0"].add_input(self.layers["fc0"])
+        self.layers["fc1"].add_input(self.layers["dropout0"])
         # set input and output
         self.input_module = self.layers["conv0"]
         self.output_module = self.layers["fc1"]
@@ -66,6 +69,8 @@ test_mnist_label = gm.extract_labels(test_label_filename, 5000)
 
 inp = mod.ConstantPlaceholderModule("input", shape=(BATCH_SIZE, 28, 28, 1))
 labels = mod.ConstantPlaceholderModule("input", shape=(BATCH_SIZE, 10))
+keep_prob = mod.ConstantPlaceholderModule("keep_prob", shape=(), dtype=tf.float32)
+
 
 activations = [tf.nn.relu, tf.nn.relu, tf.nn.relu, tf.identity]
 filter_shapes = [[8,8,1,6],[8,8,6,16]]
@@ -73,7 +78,7 @@ strides = [[1,1,1,1], [1,1,1,1]]
 bias_shapes = [[1,28,28,6],[1,14,14,16], [1,120],[1,10]]
 ksizes = [[1,4,4,1],[1,4,4,1]]
 pool_strides = [[1,2,2,1], [1,2,2,1]]
-network = Lenet5("lenet5", activations, filter_shapes, strides, bias_shapes, ksizes, pool_strides)
+network = Lenet5("lenet5", activations, filter_shapes, strides, bias_shapes, ksizes, pool_strides, keep_prob.placeholder)
 
 error = mod.ErrorModule("cross_entropy", cross_entropy)
 accuracy = mod.BatchAccuracyModule("accuracy")
@@ -94,6 +99,7 @@ def train_batch(sess, i):
     batch = train_mnist[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
     batch_labels = train_mnist_label[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
     feed_dict = {}
+    feed_dict[keep_prob.placeholder] = 0.7
     feed_dict[inp.placeholder] = batch
     feed_dict[labels.placeholder] = to_one_hot(batch_labels)
     err = sess.run(optimizer.outputs[0], feed_dict=feed_dict)
@@ -107,6 +113,7 @@ def test_epoch(sess):
         batch = test_mnist[j * BATCH_SIZE: (j + 1) * BATCH_SIZE]
         batch_labels = test_mnist_label[j * BATCH_SIZE: (j + 1) * BATCH_SIZE]
         feed_dict = {}
+        feed_dict[keep_prob.placeholder] = 1.0
         feed_dict[inp.placeholder] = batch
         feed_dict[labels.placeholder] = to_one_hot(batch_labels)
         acc += sess.run(accuracy.outputs[0], feed_dict=feed_dict)

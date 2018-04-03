@@ -661,7 +661,7 @@ class BatchAccuracyModule(OperationModule):
     computed classification accuracy
   
     Args:
-      x1:                   tensor, classification of the network
+      x1:                   tensor, prediction of the network
       x2:                   tensor, targets of the supervised task
     
     Returns:
@@ -671,7 +671,33 @@ class BatchAccuracyModule(OperationModule):
     return tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 
-# TODO: write a MultiHotBatchAccuracyModule
+class MultiHotBatchAccuracyModule(OperationModule):
+  """
+  BatchAccuracyModule inherits from OperationModule. It takes a exactly two modules as input
+  and computes the classification accuracy for Multi Label Problems
+  """
+
+  def operation(self, x1, x2):
+    """
+    operation takes a BatchAccuracyModule, a tensor x1, a tensor x2 and returns 
+    a tuple of computed classification accuracies
+  
+    Args:
+      x1:                   tensor, prediction of the network
+      x2:                   tensor, multi-hot targets of the supervised task
+    
+    Returns:
+      accuracy1:            perc. of all labels that are predicted correctly
+      accuracy2:            perc. of images where all labels are predicted correctly
+    """
+    correct_prediction = tf.equal(tf.round(tf.nn.sigmoid(x1)), tf.round(x2))
+    accuracy1 = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+    
+    all_labels_true = tf.reduce_min(tf.cast(correct_prediction), tf.float32), 1)
+    accuracy2 = tf.reduce_mean(all_labels_true)
+    
+    return accuracy1, accuracy2
+
 
 
 class ConstantPlaceholderModule(PlaceholderModule):
