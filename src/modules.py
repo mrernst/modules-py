@@ -671,16 +671,29 @@ class BatchAccuracyModule(OperationModule):
     return tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
 
 
-class MultiHotBatchAccuracyModule(OperationModule):
+class NHotBatchAccuracyModule(OperationModule):
   """
   BatchAccuracyModule inherits from OperationModule. It takes a exactly two modules as input
   and computes the classification accuracy for Multi Label Problems
   """
+  
+  def __init__(self, name, all_labels_true=True):
+    """
+    Creates an NHotBatchAccuracyModule object
+  
+    Args:
+      name:                 string, name of the Module
+      all_labels_true:      bool, False: ALL correctly predicted labels are considered for the accuracy
+                                  True: Considered only, if all labels of an IMAGE are predicted correctly
+    """
+    super().__init__(name, all_labels_true)
+    self.all_labels_true = all_labels_true
+  
 
   def operation(self, x1, x2):
     """
     operation takes a BatchAccuracyModule, a tensor x1, a tensor x2 and returns 
-    a tuple of computed classification accuracies
+    a computed classification accuracy
   
     Args:
       x1:                   tensor, prediction of the network
@@ -691,12 +704,16 @@ class MultiHotBatchAccuracyModule(OperationModule):
       accuracy2:            perc. of images where all labels are predicted correctly
     """
     correct_prediction = tf.equal(tf.round(tf.nn.sigmoid(x1)), tf.round(x2))
-    accuracy1 = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
     
-    all_labels_true = tf.reduce_min(tf.cast(correct_prediction), tf.float32), 1)
-    accuracy2 = tf.reduce_mean(all_labels_true)
+    if self.all_labels_true:
+      all_labels = tf.reduce_min(tf.cast(correct_prediction, tf.float32), 1)
+      accuracy2 = tf.reduce_mean(all_labels)
+      return accuracy2
+    else:
+      accuracy1 = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+      return accuracy1
     
-    return accuracy1, accuracy2
+    #return tf.stack([accuracy1, accuracy2]), 
 
 
 
@@ -850,7 +867,7 @@ class BatchNormalizationModule(OperationModule):
   BatchNormalizationModule inherits from OperationModule. It takes a single input module, 
   performs Batch normalization and outputs a tensor of the same shape as the input.
   """
-  def __init__(self, name, n_out, is_training, moment_axes=[0,1,2]):
+  def __init__(self, name, n_out, is_training, beta_init=0.0, gamma_init=1.0, ema_decay_rate=0.5, moment_axes=[0,1,2], variance_epsilon=1e-3):
     """
     Creates a BatchNormalizationModule
     
@@ -860,10 +877,15 @@ class BatchNormalizationModule(OperationModule):
       is_training:         boolean tf.Variable, true indicates training phase
       moment_axes:         Array of ints. Axes along which to compute mean and variance.
     """
-    super().__init__(name, n_out, is_training, moment_axes)
+    super().__init__(name, n_out, is_training, moment_axes, ema_decay_rate)
     self.n_out = n_out
     self.is_training = is_training
     self.moment_axes = moment_axes
+    self.ema_decay_rate = ema_decay_rate
+    self.variance_epsilon = variance_epsilon
+    
+    self.beta = tf.Variable(tf.constant(beta_init, shape=[self.n_out]), name=self.name + '_beta', trainable=True)
+    self.gamma = tf.Variable(tf.constant(gamma_init, shape=[self.n_out]), name=self.name + '_gamma', trainable=True)
 
   def operation(self, x):
     """
@@ -876,13 +898,12 @@ class BatchNormalizationModule(OperationModule):
     Returns:
       ret:                 batch-normalized tensor, 4D BHWD
     """
-    
-    beta = tf.Variable(tf.constant(0.0, shape=[self.n_out]), name='beta', trainable=True)
-    gamma = tf.Variable(tf.constant(1.0, shape=[self.n_out]), name='gamma', trainable=True)
+    #n_out = x.shape[-1]
+
     # should be only over axis 0, if used for non-conv layers
-    batch_mean, batch_var = tf.nn.moments(x, self.moment_axes, name='moments')
+    batch_mean, batch_var = tf.nn.moments(x, self.moment_axes, name=self.name + '_moments')
     
-    ema = tf.train.ExponentialMovingAverage(decay=0.5)
+    ema = tf.train.ExponentialMovingAverage(decay=self.ema_decay_rate)
 
     def mean_var_with_update():
       ema_apply_op = ema.apply([batch_mean, batch_var])
@@ -893,7 +914,7 @@ class BatchNormalizationModule(OperationModule):
                         mean_var_with_update,
                         lambda: (ema.average(batch_mean), ema.average(batch_var)))
     
-    ret = tf.nn.batch_normalization(x, mean, var, beta, gamma, 1e-3)
+    ret = tf.nn.batch_normalization(x, mean, var, self.beta, self.gamma, self.variance_epsilon)
     return ret
 
 
@@ -976,11 +997,12 @@ class ConvolutionalLayerWithBatchNormalizationModule(ComposedModule):
   This composed module performs a convolution and applies a bias then Batch
   Normalization and an activation function. It does not allow recursions
   """
-  def define_inner_modules(self, name, n_out, is_training, activation, filter_shape, strides, bias_shape, padding='SAME'):
+  def define_inner_modules(self, name, n_out, is_training, beta_init, gamma_init, ema_decay_rate, activation, filter_shape, strides, bias_shape, padding='SAME'):
     self.input_module = Conv2DModule(name + "_conv", filter_shape, strides, padding=padding)
     self.bias = BiasModule(name + "_bias", bias_shape)
     self.preactivation = AddModule(name + "_preactivation")
-    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, moment_axes=[0,1,2])
+    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, beta_init, gamma_init, 
+        ema_decay_rate, moment_axes=[0,1,2], variance_epsilon=1e-3)
     self.output_module = ActivationModule(name + "_output", activation)
     self.preactivation.add_input(self.input_module)
     self.preactivation.add_input(self.bias)
@@ -1008,6 +1030,28 @@ class TimeConvolutionalLayerModule(TimeComposedModule):
 
 
 
+class TimeConvolutionalLayerWithBatchNormalizationModule(TimeComposedModule):
+  """
+  TimeConvolutionalLayerWithBatchNormalizationModule inherits from TimeComposedModule. 
+  This composed module performs a convolution, applies a bias, batchnormalizes the
+  preactivation and then applies an activation function. 
+  It does allow recursions
+  """
+  def define_inner_modules(self, name, n_out, is_training, beta_init, gamma_init, 
+        ema_decay_rate, activation, filter_shape, strides, bias_shape, padding='SAME'):
+    self.input_module = TimeAddModule(name + "_input")
+    self.conv = Conv2DModule(name + "_conv", filter_shape, strides, padding=padding)
+    self.bias = BiasModule(name + "_bias", bias_shape)
+    self.preactivation = AddModule(name + "_preactivation")
+    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, beta_init, gamma_init, 
+        ema_decay_rate, moment_axes=[0,1,2], variance_epsilon=1e-3)
+    self.output_module = ActivationModule(name + "_output", activation)
+    self.conv.add_input(self.input_module)
+    self.preactivation.add_input(self.conv)
+    self.preactivation.add_input(self.bias)
+    self.batchnorm.add_input(self.preactivation)
+    self.output_module.add_input(self.batchnorm)
+
 
 class FullyConnectedLayerModule(ComposedModule):
   """
@@ -1032,11 +1076,13 @@ class FullyConnectedLayerWithBatchNormalizationModule(ComposedModule):
   performs a full connection and applies a bias batchnormalizes the preactivation and 
   applies an activation function. It does not allow recursions.
   """
-  def define_inner_modules(self, name, n_out, is_training, activation, in_size, out_size):
+  def define_inner_modules(self, name, n_out, is_training, beta_init, gamma_init, 
+        ema_decay_rate, activation, in_size, out_size):
     self.input_module = FullyConnectedModule(name + "_fc", in_size, out_size)
     self.bias = BiasModule(name + "_bias", (1, out_size))
     self.preactivation = AddModule(name + "_preactivation")
-    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, moment_axes=[0])
+    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, beta_init, gamma_init, 
+        ema_decay_rate, moment_axes=[0], variance_epsilon=1e-3)
     self.output_module = ActivationModule(name + "_output", activation)
     self.preactivation.add_input(self.input_module)
     self.preactivation.add_input(self.bias)

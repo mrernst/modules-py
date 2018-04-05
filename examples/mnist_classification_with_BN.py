@@ -5,25 +5,29 @@ import get_mnist as gm
 import tensorflow as tf
 import numpy as np
 
+import matplotlib.pyplot as plt
+
 
 class Lenet5(mod.ComposedModule):
     def define_inner_modules(self, name, is_training, activations, filter_shapes, strides, bias_shapes, ksizes, pool_strides):
         self.layers = {}
         # first convolutional layer
         self.layers["conv0"] = mod.ConvolutionalLayerWithBatchNormalizationModule("conv0",
-            bias_shapes[0][-1], is_training, activations[0], filter_shapes[0], strides[0], bias_shapes[0])
+            bias_shapes[0][-1], is_training, 0.0, 1.0, 0.5, activations[0], filter_shapes[0], strides[0], bias_shapes[0])
         # first max-pooling layer
         self.layers["pool0"] = mod.MaxPoolingModule("pool0", ksizes[0], pool_strides[0])
         # second convolutional layer
         self.layers["conv1"] = mod.ConvolutionalLayerWithBatchNormalizationModule("conv1",
-            bias_shapes[1][-1], is_training, activations[1], filter_shapes[1], strides[1], bias_shapes[1])
+            bias_shapes[1][-1], is_training, 0.0, 1.0, 0.5, activations[1], filter_shapes[1], strides[1], bias_shapes[1])
         # second max-pooling layer
         self.layers["pool1"] = mod.MaxPoolingModule("pool1", ksizes[0], pool_strides[0])
         self.layers["flat_pool1"] = mod.FlattenModule("flat_pool1")
         # first fully-connected layer
-        self.layers["fc0"] = mod.FullyConnectedLayerWithBatchNormalizationModule("fc0", bias_shapes[2][-1], is_training, activations[2], int(np.prod(np.array(bias_shapes[1]) / np.array(pool_strides[1]))), np.prod(bias_shapes[2]))
+        self.layers["fc0"] = mod.FullyConnectedLayerWithBatchNormalizationModule("fc0", bias_shapes[2][-1], is_training, 0.0, 1.0, 
+        0.5, activations[2], int(np.prod(np.array(bias_shapes[1]) / np.array(pool_strides[1]))), np.prod(bias_shapes[2]))
         # second fully-connected layer
-        self.layers["fc1"] = mod.FullyConnectedLayerWithBatchNormalizationModule("fc1", bias_shapes[3][-1], is_training, activations[3], np.prod(bias_shapes[2]), np.prod(bias_shapes[3]))
+        self.layers["fc1"] = mod.FullyConnectedLayerWithBatchNormalizationModule("fc1", bias_shapes[3][-1], is_training, 0.0, 1.0, 
+        0.5, activations[3], np.prod(bias_shapes[2]), np.prod(bias_shapes[3]))
         # connections
         self.layers["pool0"].add_input(self.layers["conv0"])
         self.layers["conv1"].add_input(self.layers["pool0"])
@@ -66,7 +70,8 @@ test_mnist_label = gm.extract_labels(test_label_filename, 5000)
 
 inp = mod.ConstantPlaceholderModule("input", shape=(BATCH_SIZE, 28, 28, 1))
 labels = mod.ConstantPlaceholderModule("input", shape=(BATCH_SIZE, 10))
-is_training = tf.placeholder(dtype=tf.bool, shape=())
+is_training = mod.ConstantPlaceholderModule("is_training", shape=(), dtype=tf.bool)
+
 
 activations = [tf.nn.relu, tf.nn.relu, tf.nn.relu, tf.identity]
 filter_shapes = [[8,8,1,6],[8,8,6,16]]
@@ -74,7 +79,7 @@ strides = [[1,1,1,1], [1,1,1,1]]
 bias_shapes = [[1,28,28,6],[1,14,14,16], [1,120],[1,10]]
 ksizes = [[1,4,4,1],[1,4,4,1]]
 pool_strides = [[1,2,2,1], [1,2,2,1]]
-network = Lenet5("lenet5", is_training, activations, filter_shapes, strides, bias_shapes, ksizes, pool_strides)
+network = Lenet5("lenet5", is_training.placeholder, activations, filter_shapes, strides, bias_shapes, ksizes, pool_strides)
 
 error = mod.ErrorModule("cross_entropy", cross_entropy)
 accuracy = mod.BatchAccuracyModule("accuracy")
@@ -97,7 +102,7 @@ def train_batch(sess, i):
     feed_dict = {}
     feed_dict[inp.placeholder] = batch
     feed_dict[labels.placeholder] = to_one_hot(batch_labels)
-    feed_dict[is_training] = True
+    feed_dict[is_training.placeholder] = True
     err = sess.run(optimizer.outputs[0], feed_dict=feed_dict)
     print("error:\t\t{:.4f}".format(err), end='\r')
 
@@ -111,13 +116,15 @@ def test_epoch(sess):
         feed_dict = {}
         feed_dict[inp.placeholder] = batch
         feed_dict[labels.placeholder] = to_one_hot(batch_labels)
-        feed_dict[is_training] = False
+        feed_dict[is_training.placeholder] = False
         acc += sess.run(accuracy.outputs[0], feed_dict=feed_dict)
         print("accuracy:\t{:.2f} %".format(100 * acc / (j+1)), end='\r')
     print("")
+    plt.scatter(i, acc / (j+1))
+    
+    
 
-
-N_EPOCH = 10
+N_EPOCH = 1
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     for epoch_number in range(N_EPOCH):
@@ -125,3 +132,5 @@ with tf.Session() as sess:
             if i % 100 == 0:
                 test_epoch(sess)
             train_batch(sess, i)
+            
+plt.show()

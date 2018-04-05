@@ -6,17 +6,29 @@ import tensorflow as tf
 import numpy as np
 
 
-class Lenet5(mod.ComposedModule):
-    def define_inner_modules(self, name, activations, filter_shapes, strides, bias_shapes, ksizes, pool_strides, keep_prob):
+class recurrentLenet5(mod.ComposedModule):
+    def define_inner_modules(self, name, is_training, activations, filter_shapes, bias_shapes, ksizes, pool_strides, keep_prob):
         self.layers = {}
         # first convolutional layer
-        self.layers["conv0"] = mod.ConvolutionalLayerModule("conv0",
-            activations[0], filter_shapes[0], strides[0], bias_shapes[0])
+        self.layers["conv0"] = mod.TimeConvolutionalLayerWithBatchNormalizationModule("conv0",
+            bias_shapes[0][-1], is_training, 0.0, 1.0, 0.5, activations[0], filter_shapes[0], [1,1,1,1], bias_shapes[0])
+        lateral_filter_shape = filter_shapes[0]
+        tmp = lateral_filter_shape[2]
+        lateral_filter_shape[2] = lateral_filter_shape[3]
+        lateral_filter_shape[3] = tmp
+        self.layers["lateral0"] = mod.Conv2DModule("lateral0", lateral_filter_shape, [1,1,1,1])
+        self.layers["lateral0_batchnorm"] = mod.BatchNormalizationModule("lateral0_batchnorm", lateral_filter_shape[-1], is_training, beta_init=0.0, gamma_init=0.1, ema_decay_rate=0.5, moment_axes=[0,1,2], variance_epsilon=1e-3)
         # first max-pooling layer
         self.layers["pool0"] = mod.MaxPoolingModule("pool0", ksizes[0], pool_strides[0])
         # second convolutional layer
-        self.layers["conv1"] = mod.ConvolutionalLayerModule(name + "conv1",
-            activations[1], filter_shapes[1], strides[1], bias_shapes[1])
+        self.layers["conv1"] = mod.TimeConvolutionalLayerWithBatchNormalizationModule(name + "conv1",
+            bias_shapes[1][-1], is_training, 0.0, 1.0, 0.5, activations[1], filter_shapes[1], [1,1,1,1], bias_shapes[1])
+        lateral_filter_shape = filter_shapes[1]
+        tmp = lateral_filter_shape[2]
+        lateral_filter_shape[2] = lateral_filter_shape[3]
+        lateral_filter_shape[3] = tmp
+        self.layers["lateral1"] = mod.Conv2DModule("lateral1", lateral_filter_shape, [1,1,1,1])
+        self.layers["lateral1_batchnorm"] = mod.BatchNormalizationModule("lateral1_batchnorm", lateral_filter_shape[-1], is_training, beta_init=0.0, gamma_init=0.1, ema_decay_rate=0.5, moment_axes=[0,1,2], variance_epsilon=1e-3)
         # second max-pooling layer
         self.layers["pool1"] = mod.MaxPoolingModule("pool1", ksizes[0], pool_strides[0])
         self.layers["flat_pool1"] = mod.FlattenModule("flat_pool1")
@@ -27,8 +39,14 @@ class Lenet5(mod.ComposedModule):
         # second fully-connected layer
         self.layers["fc1"] = mod.FullyConnectedLayerModule("fc1", activations[3], np.prod(bias_shapes[2]), np.prod(bias_shapes[3]))
         # connections
+        self.layers["lateral0"].add_input(self.layers["conv0"].preactivation)
+        self.layers["lateral0_batchnorm"].add_input(self.layers["lateral0"])
+        self.layers["conv0"].add_input(self.layers["lateral0_batchnorm"], -1)
         self.layers["pool0"].add_input(self.layers["conv0"])
-        self.layers["conv1"].add_input(self.layers["pool0"])
+        self.layers["conv1"].add_input(self.layers["pool0"], 0)
+        self.layers["lateral1"].add_input(self.layers["conv1"].preactivation)
+        self.layers["lateral1_batchnorm"].add_input(self.layers["lateral1"])
+        self.layers["conv1"].add_input(self.layers["lateral1_batchnorm"], -1)
         self.layers["pool1"].add_input(self.layers["conv1"])
         self.layers["flat_pool1"].add_input(self.layers["pool1"])
         self.layers["fc0"].add_input(self.layers["flat_pool1"])
@@ -49,6 +67,7 @@ def to_one_hot(ns):
     return ret
 
 BATCH_SIZE = 50
+TIME_DEPTH = 3
 
 train_images_name = "train-images-idx3-ubyte.gz"  #  training set images (9912422 bytes)
 train_data_filename = gm.maybe_download(train_images_name)
@@ -68,30 +87,34 @@ test_mnist_label = gm.extract_labels(test_label_filename, 5000)
 
 
 inp = mod.ConstantPlaceholderModule("input", shape=(BATCH_SIZE, 28, 28, 1))
-labels = mod.ConstantPlaceholderModule("input", shape=(BATCH_SIZE, 10))
+labels = mod.ConstantPlaceholderModule("input_labels", shape=(BATCH_SIZE, 10))
 keep_prob = mod.ConstantPlaceholderModule("keep_prob", shape=(), dtype=tf.float32)
+is_training = mod.ConstantPlaceholderModule("is_training", shape=(), dtype=tf.bool)
+
 
 
 activations = [tf.nn.relu, tf.nn.relu, tf.nn.relu, tf.identity]
 filter_shapes = [[8,8,1,6],[8,8,6,16]]
-strides = [[1,1,1,1], [1,1,1,1]]
 bias_shapes = [[1,28,28,6],[1,14,14,16], [1,120],[1,10]]
 ksizes = [[1,4,4,1],[1,4,4,1]]
 pool_strides = [[1,2,2,1], [1,2,2,1]]
-network = Lenet5("lenet5", activations, filter_shapes, strides, bias_shapes, ksizes, pool_strides, keep_prob.placeholder)
+network = recurrentLenet5("rlenet5", is_training.placeholder, activations, filter_shapes, bias_shapes, ksizes, pool_strides, keep_prob.placeholder)
 
-error = mod.ErrorModule("cross_entropy", cross_entropy)
+one_time_error = mod.ErrorModule("cross_entropy", cross_entropy)
+error = mod.TimeAddModule("add_error")
 accuracy = mod.BatchAccuracyModule("accuracy")
 optimizer = mod.OptimizerModule("adam", tf.train.AdamOptimizer())
 
 network.add_input(inp)
-error.add_input(network)
-error.add_input(labels)
+one_time_error.add_input(network)
+one_time_error.add_input(labels)
+error.add_input(one_time_error, 0)
+error.add_input(error, -1)
 accuracy.add_input(network)
 accuracy.add_input(labels)
 optimizer.add_input(error)
-optimizer.create_output(0)
-accuracy.create_output(0)
+optimizer.create_output(TIME_DEPTH)
+accuracy.create_output(TIME_DEPTH)
 
 
 
@@ -99,10 +122,11 @@ def train_batch(sess, i):
     batch = train_mnist[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
     batch_labels = train_mnist_label[i * BATCH_SIZE: (i + 1) * BATCH_SIZE]
     feed_dict = {}
-    feed_dict[keep_prob.placeholder] = 0.7
+    feed_dict[is_training.placeholder] = True
+    feed_dict[keep_prob.placeholder] = 1.0
     feed_dict[inp.placeholder] = batch
     feed_dict[labels.placeholder] = to_one_hot(batch_labels)
-    err = sess.run(optimizer.outputs[0], feed_dict=feed_dict)
+    err = sess.run(optimizer.outputs[TIME_DEPTH], feed_dict=feed_dict)
     print("error:\t\t{:.4f}".format(err), end='\r')
 
 
@@ -113,15 +137,16 @@ def test_epoch(sess):
         batch = test_mnist[j * BATCH_SIZE: (j + 1) * BATCH_SIZE]
         batch_labels = test_mnist_label[j * BATCH_SIZE: (j + 1) * BATCH_SIZE]
         feed_dict = {}
+        feed_dict[is_training.placeholder] = False
         feed_dict[keep_prob.placeholder] = 1.0
         feed_dict[inp.placeholder] = batch
         feed_dict[labels.placeholder] = to_one_hot(batch_labels)
-        acc += sess.run(accuracy.outputs[0], feed_dict=feed_dict)
+        acc += sess.run(accuracy.outputs[TIME_DEPTH], feed_dict=feed_dict)
         print("accuracy:\t{:.2f} %".format(100 * acc / (j+1)), end='\r')
     print("")
 
 
-N_EPOCH = 1
+N_EPOCH = 2
 with tf.Session() as sess:
     sess.run(tf.global_variables_initializer())
     for epoch_number in range(N_EPOCH):
