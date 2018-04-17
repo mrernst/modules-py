@@ -17,7 +17,7 @@ INDENT = 0
 
 class InputContainer(list):
   """
-  InputContainer inherits from list. It allows for appending variables to 
+  InputContainer inherits from list. It allows for appending variables to
   InputContainer with the increment_add operator (+=)
   """
   def __iadd__(self, other):
@@ -32,13 +32,13 @@ class Module:
   """
   Module is an abstract class. It is the base class of all following modules and constitutes
   the very basic properties, IO and naming.
-  
+
   @param name str, every module must have a name
   """
   def __init__(self, name, *args, **kwargs):
     """
     Creates Module object.
-    
+
     Args:
       name:                 string, name of the Module
     """
@@ -54,10 +54,10 @@ class Module:
     """
     output_exists takes a Module object and an integer t and returns true iff
     self.outputs has an entry for timeslice t
-    
+
     Args:
       t:                    int, indicates the timeslice
-    
+
     Returns:
       ?:                    bool
     """
@@ -67,10 +67,10 @@ class Module:
     """
     need_to_create_output takes a Module object and an integer t and returns
     true iff t>=0 and there is not already an output for timeslice t.
-    
+
     Args:
       t:                    int, indicates the timeslice
-    
+
     Returns:
       ?:                    bool
     """
@@ -102,7 +102,7 @@ class Module:
 
 class OperationModule(Module):
   """
-  Operation Module is an abstract class. It inherits from Module and can perform 
+  Operation Module is an abstract class. It inherits from Module and can perform
   an operation on the output of another Module in the same time slice.
   To inherit from it, overwrite the 'operation' method in the following way:
   The operation method should take as many parameters as there are modules
@@ -110,24 +110,24 @@ class OperationModule(Module):
   output tensors of the previous modules in the same time slice.
   See the implementation of child classes for more information.
   """
-  
+
   def add_input(self, other):
     """
     The method add_input connects the module to the output of another module in the
     same time slice.
-    
+
     Args:
       other:        Module
-    
+
     Returns:
       self:         OperationModule
-    
+
     Example usage:
     mw_module.add_input(other_module)
     """
     self.inputs += other, 0
     return self
-    
+
   def operation(self, x):
     """
     The method operation is supposed to perform an operation on OperationModule's inputs,
@@ -139,7 +139,7 @@ class OperationModule(Module):
 
 class PlaceholderModule(OperationModule):
   """
-  PlaceholderModule is an abstract class. It inherits from OperationModule and takes no input. 
+  PlaceholderModule is an abstract class. It inherits from OperationModule and takes no input.
   It holds a place where the user can feed in a value to be used in the graph.
   """
   def __init__(self, name, shape, dtype=tf.float32):
@@ -155,7 +155,7 @@ class PlaceholderModule(OperationModule):
 
 class TimeOperationModule(OperationModule):
   """
-  TimeOperationModule is an abstract class. It inherits from OperationModule and can perform 
+  TimeOperationModule is an abstract class. It inherits from OperationModule and can perform
   an operation on the output of another Module in the a different time slice. For Usage, see
   OperationModule. TimeOperationModule and Operationmodule are separated to help the user
   to better keep track of the connectivity of her/his modules.
@@ -164,12 +164,12 @@ class TimeOperationModule(OperationModule):
   def add_input(self, other, t):
     """
     The method add_input connects the module to the output of another module in the
-    same OR ANY OTHER time slice. Connecting the module to a future time slice 
+    same OR ANY OTHER time slice. Connecting the module to a future time slice
     (ie t=1, 2...) makes no sense.
-    
+
     @param other Module, an other module
     @param t int, the delta t which specify to which time slice to connect to
-    
+
     Example usage:
     same timeslice         mw_module.add_input(other_module,  0)
     previous timeslice     mw_module.add_input(other_module, -1)
@@ -190,8 +190,8 @@ class FakeModule(TimeOperationModule):
 class VariableModule(OperationModule):
   """
   VariableModule is an abstract class. It inherits from OperationModule and allows storing
-  a tensorflow variable in addition to performing an operation. To inherit from it, 
-  overwrite the 'create_variables' method. The method is then automatically called 
+  a tensorflow variable in addition to performing an operation. To inherit from it,
+  overwrite the 'create_variables' method. The method is then automatically called
   by the constructor.
   See the implementation of child classes for more information.
   """
@@ -204,7 +204,7 @@ class VariableModule(OperationModule):
     """
     The method create_variables is supposed to create a tensorflow variable,
     it has to be overwritten when inherting from this abstract class
-    
+
     @param name str, implementation must be changed, name can be accessed from self
     """
     raise Exception("Calling abstract class, overwrite this function")
@@ -218,7 +218,7 @@ class ConstantVariableModule(VariableModule):
   def __init__(self, name, shape, dtype):
     """
     Creates ConstantVariableModule object
-    
+
     Args:
       name:                 string, name of the module
       shape:                array, shape of the variable to be stored
@@ -229,7 +229,7 @@ class ConstantVariableModule(VariableModule):
     super().__init__(name, shape, dtype)
 
   def operation(self, *args):
-    """ 
+    """
     operation takes a ConstantVariableModule and returns the tensorflow variable which holds
     which holds the variable created by create_variables
     """
@@ -240,17 +240,17 @@ class ConstantVariableModule(VariableModule):
     create_variables takes a ConstantVariableModule and a name and instatiates a tensorflow variable
     with the shape specified in the constructor.
     It returns nothing
-    
+
     @param name str, implementation must be changed, name can be accessed from self
     """
-    
+
     self.variable = tf.Variable(tf.zeros(shape=self.shape, dtype=self.dtype), name=name)
 
 
 
 class BiasModule(VariableModule):
   """
-  BiasModule inherits from VariableModule. It holds on to a bias variable, 
+  BiasModule inherits from VariableModule. It holds on to a bias variable,
   that can be added to another tensor.
   Eventual input modules to BiasModule are disregarded.
   """
@@ -258,7 +258,7 @@ class BiasModule(VariableModule):
   def __init__(self, name, bias_shape):
     """
     Creates a BiasModule Object
-    
+
     Args:
       name:                 string, name of the module
       bias_shape:           array, shape of the bias, i.e. (B,W,H,D)
@@ -267,7 +267,7 @@ class BiasModule(VariableModule):
     super().__init__(name, bias_shape)
 
   def operation(self, *args):
-    """ 
+    """
     operation takes a BiasModule and returns the tensorflow variable which holds
     the variable created by create_variables
     """
@@ -278,7 +278,7 @@ class BiasModule(VariableModule):
     create_variables takes a BiasModule and a name and instantiates a tensorflow variable
     with the shape specified in the constructor.
     It returns nothing.
-    
+
     @param name str, implementation must be changed, name can be accessed from self
     """
     self.bias = tf.Variable(tf.zeros(shape=self.bias_shape), name=name)
@@ -289,17 +289,17 @@ class Conv2DModule(VariableModule):
   Conv2DModule inherits from VariableModule. It takes a single input module
   and performs a convolution.
   """
-  
+
   def __init__(self, name, filter_shape, strides, padding='SAME'):
     """
     Creates a Conv2DModule object
-    
+
     Args:
       name:               string, name of the module
       filter_shape:       array, defines the shape of the filter
       strides:            list of ints length 4, stride of the sliding window for each dimension of input
       padding:            string from: "SAME", "VALID", type of padding algorithm to use.
-    
+
     For more information see tf.nn.conv2d
     """
     self.filter_shape = filter_shape
@@ -311,7 +311,7 @@ class Conv2DModule(VariableModule):
     """
     operation takes a Conv2DModule and x, a 4D tensor and performs a convolution of the input module
     in the current time slice
-    
+
     Args:
       x:                    4D tensor (BHWD)
     Returns:
@@ -321,7 +321,7 @@ class Conv2DModule(VariableModule):
 
   def create_variables(self, name):
     """
-    create_variables takes a Conv2DModule and a name and instantiates a tensorflow variable for 
+    create_variables takes a Conv2DModule and a name and instantiates a tensorflow variable for
     the filters (or weights) for the convolution as specified by the parameters given in the constructor.
     """
     self.weights = tf.Variable(tf.truncated_normal(
@@ -337,17 +337,17 @@ class Conv2DTransposeModule(VariableModule):
   def __init__(self, name, filter_shape, strides, output_shape, padding='SAME'):
     """
     Creates a Conv2DTransposeModule object
-    
+
     Args:
       name:               string, name of the module
       filter_shape:       array, defines the shape of the filter
       output_shape:       array, output shape of the deconvolution op
       strides:            list of ints length 4, stride of the sliding window for each dimension of input
       padding:            string from: "SAME", "VALID", type of padding algorithm to use.
-    
+
     For more information see tf.nn.conv2d_transpose
     """
-    
+
     self.filter_shape = filter_shape
     super().__init__(name, filter_shape, strides, output_shape, padding)
     self.strides = strides
@@ -359,7 +359,7 @@ class Conv2DTransposeModule(VariableModule):
     """
     operation takes a Conv2DTransposeModule and x, a 4D tensor and performs a deconvolution of the input module
     in the current time slice
-    
+
     Args:
       x:                    4D tensor (BHWD)
     Returns:
@@ -370,7 +370,7 @@ class Conv2DTransposeModule(VariableModule):
 
   def create_variables(self, name):
     """
-    create_variables takes a Conv2DTransposeModule and a name and instantiates a tensorflow variable for 
+    create_variables takes a Conv2DTransposeModule and a name and instantiates a tensorflow variable for
     the filters (or weights) for the deconvolution as specified by the parameters given in the constructor.
     """
     self.weights = tf.Variable(tf.truncated_normal(shape=self.filter_shape, stddev=0.1), name=name)
@@ -385,7 +385,7 @@ class MaxPoolingModule(OperationModule):
   def __init__(self, name, ksize, strides, padding='SAME'):
     """
     Creates a MaxPoolingModule object
-    
+
     Args:
       name:                 string, name of the Module
       ksize:
@@ -400,9 +400,9 @@ class MaxPoolingModule(OperationModule):
 
   def operation(self, x):
     """
-    operation takes a MaxPoolingModule and x, a 4D tensor and performs a maxpooling of 
+    operation takes a MaxPoolingModule and x, a 4D tensor and performs a maxpooling of
     the input module in the current time slice
-    
+
     Args:
       x:                    4D tensor (BHWD)
     Returns:
@@ -421,9 +421,9 @@ class FlattenModule(OperationModule):
 
   def operation(self, x):
     """
-    operation takes a FlattenModule and x, a tensor and performs a flattening operation of 
+    operation takes a FlattenModule and x, a tensor and performs a flattening operation of
     the input module in the current time slice
-    
+
     Args:
       x:                    tensor
     Returns:
@@ -435,12 +435,12 @@ class FlattenModule(OperationModule):
 
 
 class CropAndConcatModule(TimeOperationModule):
-    """ 
+    """
     CropAndConcatModule inherits from TimeOperationModule. It takes exactly 2 input modules,
     crops the output of input module 1 to the size of the output of input module 2 and concatenates
     them along an axis
     """
-  
+
     def __init__(self, name, axis=3, *args):
       """
       Creates a CropAndConcatModule
@@ -455,7 +455,7 @@ class CropAndConcatModule(TimeOperationModule):
     def operation(self, x1, x2):
       """
       operation takes a CropAndConcatModule, tensor x1, tensor x2 and crops and concats them together
-    
+
       Args:
         x1:                 tensor
         x2:                 tensor, same shape as x1
@@ -481,13 +481,13 @@ class FullyConnectedModule(VariableModule):
   def __init__(self, name, in_size, out_size):
     """
     Creates FullyConnectedModule object
-    
+
     Args:
       name:                 string, name of the Module
       in_size:              int, the number of neurons in the previous layer
       out_size:             int, the number of neurons in the current new layer
     """
-    
+
     self.in_size = in_size
     self.out_size = out_size
     super().__init__(name, in_size, out_size)
@@ -495,9 +495,9 @@ class FullyConnectedModule(VariableModule):
 
   def operation(self, x):
     """
-    operation takes a FullyConnectedModule, a tensor x and returns the matrix multiplication 
+    operation takes a FullyConnectedModule, a tensor x and returns the matrix multiplication
     of the output of the input module by a weight matrix defined by create_variables
-  
+
     Args:
       x:                  tensor
     Returns:
@@ -507,7 +507,7 @@ class FullyConnectedModule(VariableModule):
 
   def create_variables(self, name):
     """
-    create_variables takes a FullyConnectedModule object and a name and instantiates a tensorflow variable for 
+    create_variables takes a FullyConnectedModule object and a name and instantiates a tensorflow variable for
     the learnable weights of the matrix as specified by the parameters for sizes given in the constructor.
     """
     self.weights = tf.Variable(tf.truncated_normal(shape=(self.in_size, self.out_size), stddev=0.1), name=name)
@@ -523,7 +523,7 @@ class ErrorModule(OperationModule):
   def __init__(self, name, error_func):
     """
     Creates ErrorModule object
-    
+
     Args:
       name:                 string, name of the Module
       error_func:           callable, function that takes exactly 2 args, returns a tf.tensor
@@ -536,7 +536,7 @@ class ErrorModule(OperationModule):
     """
     operation takes an ErrorModule, a tensor x1, a tensor x2 and returns the output of
     error_func as defined in __init__
-  
+
     Args:
       x1:                   tensor, logits
       x2:                   tensor, labels
@@ -554,7 +554,7 @@ class DropoutModule(OperationModule):
   def __init__(self, name, keep_prob, noise_shape=None, seed=None):
     """
     Creates DropoutModule object
-    
+
     Args:
       name:                 string, name of the Module
       keep_prob:            float, the probability that each element is kept.
@@ -570,7 +570,7 @@ class DropoutModule(OperationModule):
     """
     operation takes a DropoutModule, a tensor x and returns a tensor the same shape
     with some entries randomly set to zero
-  
+
     Args:
       x:                    tensor, logits
     Returns:
@@ -584,11 +584,11 @@ class NormalizationModule(OperationModule):
   NormalizationModule inherits from OperationModule. It takes a single module as input
   and applies normalizes it to values between inp_min and inp_max
   """
-  
+
   def __init__(self, name, inp_max=1, inp_min=-1, dtype=tf.float32):
     """
     Creates NormalizationModule object
-    
+
     Args:
       name:                 string, name of the Module
       inp_max:              float, maximum of the rescaled range, default 1
@@ -604,7 +604,7 @@ class NormalizationModule(OperationModule):
     """
     operation takes a NormalizationModule, a tensor x and returns a tensor the same shape
     with values rescaled between inp_max, inp_min
-  
+
     Args:
       x:                    tensor, RGBA image
     Returns:
@@ -624,7 +624,7 @@ class OptimizerModule(OperationModule):
   def __init__(self, name, optimizer):
     """
     Creates OptimizerModule object
-    
+
     Args:
       name:                 string, name of the Module
       optimizer:            tf.train.Optimizer, an instance of an optimizer
@@ -634,10 +634,10 @@ class OptimizerModule(OperationModule):
 
   def operation(self, x):
     """
-    operation takes a OptimizerModule, a tensor x and returns the output of the 
-    input module after adding a dependency in the tensorflow graph. 
+    operation takes a OptimizerModule, a tensor x and returns the output of the
+    input module after adding a dependency in the tensorflow graph.
     Once the output of this module is computed the network is trained
-  
+
     Args:
       x:                    tensor, most likely the last layer of your network
     Returns:
@@ -657,13 +657,13 @@ class BatchAccuracyModule(OperationModule):
 
   def operation(self, x1, x2):
     """
-    operation takes a BatchAccuracyModule, a tensor x1, a tensor x2 and returns 
+    operation takes a BatchAccuracyModule, a tensor x1, a tensor x2 and returns
     computed classification accuracy
-  
+
     Args:
       x1:                   tensor, prediction of the network
       x2:                   tensor, targets of the supervised task
-    
+
     Returns:
       ?:                    1D tensor, accuracy
     """
@@ -676,11 +676,11 @@ class NHotBatchAccuracyModule(OperationModule):
   BatchAccuracyModule inherits from OperationModule. It takes a exactly two modules as input
   and computes the classification accuracy for Multi Label Problems
   """
-  
+
   def __init__(self, name, all_labels_true=True):
     """
     Creates an NHotBatchAccuracyModule object
-  
+
     Args:
       name:                 string, name of the Module
       all_labels_true:      bool, False: ALL correctly predicted labels are considered for the accuracy
@@ -688,23 +688,23 @@ class NHotBatchAccuracyModule(OperationModule):
     """
     super().__init__(name, all_labels_true)
     self.all_labels_true = all_labels_true
-  
+
 
   def operation(self, x1, x2):
     """
-    operation takes a BatchAccuracyModule, a tensor x1, a tensor x2 and returns 
+    operation takes a BatchAccuracyModule, a tensor x1, a tensor x2 and returns
     a computed classification accuracy
-  
+
     Args:
       x1:                   tensor, prediction of the network
       x2:                   tensor, multi-hot targets of the supervised task
-    
+
     Returns:
       accuracy1:            perc. of all labels that are predicted correctly
       accuracy2:            perc. of images where all labels are predicted correctly
     """
     correct_prediction = tf.equal(tf.round(tf.nn.sigmoid(x1)), tf.round(x2))
-    
+
     if self.all_labels_true:
       all_labels = tf.reduce_min(tf.cast(correct_prediction, tf.float32), 1)
       accuracy2 = tf.reduce_mean(all_labels)
@@ -712,14 +712,14 @@ class NHotBatchAccuracyModule(OperationModule):
     else:
       accuracy1 = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
       return accuracy1
-    
-    #return tf.stack([accuracy1, accuracy2]), 
+
+    #return tf.stack([accuracy1, accuracy2]),
 
 
 
 class ConstantPlaceholderModule(PlaceholderModule):
   """
-  ConstantPlaceholderModule inherits from PlaceholderModule and reserves a place 
+  ConstantPlaceholderModule inherits from PlaceholderModule and reserves a place
   to feed in data. Eventual input modules to BiasModule are disregarded.
   """
 
@@ -738,11 +738,11 @@ class TimeVaryingPlaceholderModule(PlaceholderModule):
   is fed by the user and rolls it so that at each time slice the network sees
   a new value
   """
-  
+
   def __init__(self, name, shape, dtype=tf.float32):
     """
     Creates a TimeVaryingPlaceholderModuleme object
-  
+
     Args:
       name:                 string, name of the Module
       shape:                array, shape of the placeholder
@@ -794,7 +794,7 @@ class ActivationModule(OperationModule):
   def __init__(self, name, activation):
     """
     Creates an ActivationModule object
-  
+
     Args:
       name:                 string, name of the Module
       activation:           callable, tf activation function
@@ -804,12 +804,12 @@ class ActivationModule(OperationModule):
 
   def operation(self, x):
     """
-    operation takes a ActivationModule, a tensor x and returns 
+    operation takes a ActivationModule, a tensor x and returns
     the resulting tensor after applying the activation function
-  
+
     Args:
       x:                    tensor, preactivation
-    
+
     Returns:
       ?:                    tensor, same shape as x
     """
@@ -826,10 +826,10 @@ class TimeAddModule(TimeOperationModule):
   def operation(self, *args):
     """
     operation takes a TimeAddModule and the input modules
-  
+
     Args:
       *args:                list of modules
-        
+
     Returns:
       ret:                  tensor, sum of input tensors
     """
@@ -849,10 +849,10 @@ class AddModule(OperationModule):
   def operation(self, *args):
     """
     operation takes an AddModule and the input modules
-  
+
     Args:
       *args:                list of modules
-        
+
     Returns:
       ret:                    tensor, sum of input tensors
     """
@@ -864,13 +864,13 @@ class AddModule(OperationModule):
 
 class BatchNormalizationModule(OperationModule):
   """
-  BatchNormalizationModule inherits from OperationModule. It takes a single input module, 
+  BatchNormalizationModule inherits from OperationModule. It takes a single input module,
   performs Batch normalization and outputs a tensor of the same shape as the input.
   """
   def __init__(self, name, n_out, is_training, beta_init=0.0, gamma_init=1.0, ema_decay_rate=0.5, moment_axes=[0,1,2], variance_epsilon=1e-3):
     """
     Creates a BatchNormalizationModule
-    
+
     Args:
       name:                tensor, 4D BHWD input
       n_out:               integer, depth of input
@@ -883,18 +883,18 @@ class BatchNormalizationModule(OperationModule):
     self.moment_axes = moment_axes
     self.ema_decay_rate = ema_decay_rate
     self.variance_epsilon = variance_epsilon
-    
+
     self.beta = tf.Variable(tf.constant(beta_init, shape=[self.n_out]), name=self.name + '_beta', trainable=True)
     self.gamma = tf.Variable(tf.constant(gamma_init, shape=[self.n_out]), name=self.name + '_gamma', trainable=True)
 
   def operation(self, x):
     """
-    operation takes a BatchNormalizationModule and a 4D BHWD input tensor 
+    operation takes a BatchNormalizationModule and a 4D BHWD input tensor
     and returns a tensor the same size
-    
+
     Args:
       x:                   tensor, 4D BHWD input
-    
+
     Returns:
       ret:                 batch-normalized tensor, 4D BHWD
     """
@@ -902,7 +902,7 @@ class BatchNormalizationModule(OperationModule):
 
     # should be only over axis 0, if used for non-conv layers
     batch_mean, batch_var = tf.nn.moments(x, self.moment_axes, name=self.name + '_moments')
-    
+
     ema = tf.train.ExponentialMovingAverage(decay=self.ema_decay_rate)
 
     def mean_var_with_update():
@@ -913,7 +913,7 @@ class BatchNormalizationModule(OperationModule):
     mean, var = tf.cond(self.is_training,
                         mean_var_with_update,
                         lambda: (ema.average(batch_mean), ema.average(batch_var)))
-    
+
     ret = tf.nn.batch_normalization(x, mean, var, self.beta, self.gamma, self.variance_epsilon)
     return ret
 
@@ -935,7 +935,7 @@ class AbstractComposedModule(Module):
 
   def create_output(self, t):
     """
-    create_output takes an AbstractComposesModule object and an integer t. 
+    create_output takes an AbstractComposesModule object and an integer t.
     It creates outputs for the modules using its inputs
     """
     self.output_module.create_output(t)
@@ -948,11 +948,11 @@ class AbstractComposedModule(Module):
 class TimeComposedModule(AbstractComposedModule, TimeOperationModule):
   """
   TimeComposedModule is an abstract class. It inherits from AbstractComposedModule and
-  TimeOperationModule. It allows when overwritten to create a module that is composed 
-  of other modules and accept recursions. See the implementation of ConvolutionalLayerModule 
+  TimeOperationModule. It allows when overwritten to create a module that is composed
+  of other modules and accept recursions. See the implementation of ConvolutionalLayerModule
   for more info. The method 'define_inner_modules' must be overwritten,
   the attribute input_module must be set to the module which is the input of
-  the composed module. The attribute output_module must be set to the module 
+  the composed module. The attribute output_module must be set to the module
   which is the output of the composed module
   """
   pass
@@ -962,12 +962,12 @@ class TimeComposedModule(AbstractComposedModule, TimeOperationModule):
 class ComposedModule(AbstractComposedModule, OperationModule):
   """
    ComposedModule is an abstract class. It inherits from AbstractComposedModule and
-   OperationModule. It allows when overwritten to create a module that is 
+   OperationModule. It allows when overwritten to create a module that is
    composed of other modules and does not accept recursions.
    See the implementation of ConvolutionalLayerModule for more info.
    the method 'define_inner_modules' must be overwritten,
    the attribute input_module must be set to the module which is the input of
-   the composed module, the attribute output_module must be set to the module 
+   the composed module, the attribute output_module must be set to the module
    which is the output of the composed module
   """
   pass
@@ -976,8 +976,8 @@ class ComposedModule(AbstractComposedModule, OperationModule):
 
 class ConvolutionalLayerModule(ComposedModule):
   """
-  ConvolutionalLayerModule inherits from ComposedModule. This composed module 
-  performs a convolution and applies a bias and an activation function. 
+  ConvolutionalLayerModule inherits from ComposedModule. This composed module
+  performs a convolution and applies a bias and an activation function.
   It does not allow recursions
   """
   def define_inner_modules(self, name, activation, filter_shape, strides, bias_shape, padding='SAME'):
@@ -999,14 +999,14 @@ class ConvolutionalLayerWithBatchNormalizationModule(ComposedModule):
   """
   def define_inner_modules(self, name, n_out, is_training, beta_init, gamma_init, ema_decay_rate, activation, filter_shape, strides, bias_shape, padding='SAME'):
     self.input_module = Conv2DModule(name + "_conv", filter_shape, strides, padding=padding)
-    self.bias = BiasModule(name + "_bias", bias_shape)
-    self.preactivation = AddModule(name + "_preactivation")
-    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, beta_init, gamma_init, 
+    #self.bias = BiasModule(name + "_bias", bias_shape)
+    #self.preactivation = AddModule(name + "_preactivation")
+    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, beta_init, gamma_init,
         ema_decay_rate, moment_axes=[0,1,2], variance_epsilon=1e-3)
     self.output_module = ActivationModule(name + "_output", activation)
-    self.preactivation.add_input(self.input_module)
-    self.preactivation.add_input(self.bias)
-    self.batchnorm.add_input(self.preactivation)
+    #self.preactivation.add_input(self.input_module)
+    #self.preactivation.add_input(self.bias)
+    self.batchnorm.add_input(self.input_module)
     self.output_module.add_input(self.batchnorm)
 
 
@@ -1014,7 +1014,7 @@ class ConvolutionalLayerWithBatchNormalizationModule(ComposedModule):
 class TimeConvolutionalLayerModule(TimeComposedModule):
   """
   TimeConvolutionalLayerModule inherits from TimeComposedModule. This composed module
-  performs a convolution and applies a bias and an activation function. 
+  performs a convolution and applies a bias and an activation function.
   It does allow recursions
   """
   def define_inner_modules(self, name, activation, filter_shape, strides, bias_shape, padding='SAME'):
@@ -1032,31 +1032,31 @@ class TimeConvolutionalLayerModule(TimeComposedModule):
 
 class TimeConvolutionalLayerWithBatchNormalizationModule(TimeComposedModule):
   """
-  TimeConvolutionalLayerWithBatchNormalizationModule inherits from TimeComposedModule. 
+  TimeConvolutionalLayerWithBatchNormalizationModule inherits from TimeComposedModule.
   This composed module performs a convolution, applies a bias, batchnormalizes the
-  preactivation and then applies an activation function. 
+  preactivation and then applies an activation function.
   It does allow recursions
   """
-  def define_inner_modules(self, name, n_out, is_training, beta_init, gamma_init, 
+  def define_inner_modules(self, name, n_out, is_training, beta_init, gamma_init,
         ema_decay_rate, activation, filter_shape, strides, bias_shape, padding='SAME'):
     self.input_module = TimeAddModule(name + "_input")
     self.conv = Conv2DModule(name + "_conv", filter_shape, strides, padding=padding)
-    self.bias = BiasModule(name + "_bias", bias_shape)
+    #self.bias = BiasModule(name + "_bias", bias_shape)
     self.preactivation = AddModule(name + "_preactivation")
-    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, beta_init, gamma_init, 
+    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, beta_init, gamma_init,
         ema_decay_rate, moment_axes=[0,1,2], variance_epsilon=1e-3)
     self.output_module = ActivationModule(name + "_output", activation)
     self.conv.add_input(self.input_module)
     self.preactivation.add_input(self.conv)
-    self.preactivation.add_input(self.bias)
+    #self.preactivation.add_input(self.bias)
     self.batchnorm.add_input(self.preactivation)
     self.output_module.add_input(self.batchnorm)
 
 
 class FullyConnectedLayerModule(ComposedModule):
   """
-  FullyConnectedLayerModule inherits from ComposedModule. This composed module 
-  performs a full connection and applies a bias and an activation function. 
+  FullyConnectedLayerModule inherits from ComposedModule. This composed module
+  performs a full connection and applies a bias and an activation function.
   It does not allow recursions.
   """
   def define_inner_modules(self, name, activation, in_size, out_size):
@@ -1072,25 +1072,25 @@ class FullyConnectedLayerModule(ComposedModule):
 
 class FullyConnectedLayerWithBatchNormalizationModule(ComposedModule):
   """
-  FullyConnectedLayerWithBatchNormalizationModule inherits from ComposedModule. This composed module 
-  performs a full connection and applies a bias batchnormalizes the preactivation and 
+  FullyConnectedLayerWithBatchNormalizationModule inherits from ComposedModule. This composed module
+  performs a full connection and applies a bias batchnormalizes the preactivation and
   applies an activation function. It does not allow recursions.
   """
-  def define_inner_modules(self, name, n_out, is_training, beta_init, gamma_init, 
+  def define_inner_modules(self, name, n_out, is_training, beta_init, gamma_init,
         ema_decay_rate, activation, in_size, out_size):
     self.input_module = FullyConnectedModule(name + "_fc", in_size, out_size)
-    self.bias = BiasModule(name + "_bias", (1, out_size))
+    #self.bias = BiasModule(name + "_bias", (1, out_size))
     self.preactivation = AddModule(name + "_preactivation")
-    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, beta_init, gamma_init, 
+    self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, beta_init, gamma_init,
         ema_decay_rate, moment_axes=[0], variance_epsilon=1e-3)
     self.output_module = ActivationModule(name + "_output", activation)
     self.preactivation.add_input(self.input_module)
-    self.preactivation.add_input(self.bias)
+    #self.preactivation.add_input(self.bias)
     self.batchnorm.add_input(self.preactivation)
     self.output_module.add_input(self.batchnorm)
 
 if __name__ == '__main__':
-  
+
   # visualize recurrent sample structure in cmdline
   f1 = FakeModule("input")
   f2 = FakeModule("conv1")
