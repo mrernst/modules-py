@@ -703,7 +703,16 @@ class NHotBatchAccuracyModule(OperationModule):
       accuracy1:            perc. of all labels that are predicted correctly
       accuracy2:            perc. of images where all labels are predicted correctly
     """
-    correct_prediction = tf.equal(tf.round(tf.nn.sigmoid(x1)), tf.round(x2))
+    #correct_prediction = tf.equal(tf.round(tf.nn.sigmoid(x1)), tf.round(x2))
+    
+    n = tf.count_nonzero(x2[-1], dtype=tf.int32)
+    def sort_topk_indices(inputtensor, k):
+      """docstring for sort_topk_indices"""
+      x_ind = tf.nn.top_k(inputtensor,k=k).indices
+      x_ind_sorted = tf.gather(x_ind, tf.nn.top_k(x_ind, k=k).indices)
+      return x_ind_sorted
+    
+    correct_prediction = tf.equal(sort_topk_indices(x1, k=n),sort_topk_indices(x2, k=n))
 
     if self.all_labels_true:
       all_labels = tf.reduce_min(tf.cast(correct_prediction, tf.float32), 1)
