@@ -433,6 +433,37 @@ class FlattenModule(OperationModule):
     return ret
 
 
+class CropModule(OperationModule):
+  """
+  CropModule inherits from OperationModule. It takes a single input module and
+  resizes it.
+  """
+  def __init__(self, name, height, width):
+     """
+     Creates a CropModule object
+
+     Args:
+       name:                 string, name of the Module
+       height:               int, desired output image height
+       weight:               int, desired output image width
+     """
+     super().__init__(name, height, width)
+     self.height = height
+     self.width = width
+
+  def operation(self, x):
+    """
+    operation takes a CropModule and x, a tensor and performs a cropping operation of
+    the input module in the current time slice
+
+    Args:
+      x:                    tensor
+    Returns:
+      ret:                  tensor, (B,self.height,self.width,D)
+    """
+    ret = tf.image.resize_image_with_crop_or_pad(x, self.height, self.width)
+    return ret
+
 
 class CropAndConcatModule(TimeOperationModule):
     """
@@ -703,26 +734,33 @@ class NHotBatchAccuracyModule(OperationModule):
       accuracy1:            perc. of all labels that are predicted correctly
       accuracy2:            perc. of images where all labels are predicted correctly
     """
-    #correct_prediction = tf.equal(tf.round(tf.nn.sigmoid(x1)), tf.round(x2))
-    
+    ## another way of computing the correct prediction, albeit not really the right way
+    # correct_prediction = tf.equal(tf.round(tf.nn.sigmoid(x1)), tf.round(x2))
+
     n = tf.count_nonzero(x2[-1], dtype=tf.int32)
-    def sort_topk_indices(inputtensor, k):
-      """docstring for sort_topk_indices"""
-      x_ind = tf.nn.top_k(inputtensor,k=k).indices
-      x_ind_sorted = tf.gather(x_ind, tf.nn.top_k(x_ind, k=k).indices)
-      return x_ind_sorted
-    
-    correct_prediction = tf.equal(sort_topk_indices(x1, k=n),sort_topk_indices(x2, k=n))
+    nlabels = tf.shape(x2)[-1]
+
+    #def sort_topk_indices(inputtensor, k):
+    #  """docstring for sort_topk_indices"""
+    #  x_ind = tf.nn.top_k(inputtensor,k=k).indices
+    #  x_ind_sorted = tf.nn.top_k(x_ind, k=k).values
+    #  return x_ind_sorted
+
+    x1_topk_ind = tf.nn.top_k(x1,k=n).indices
+    x1_nhot =  tf.reduce_sum(tf.one_hot(x1_topk_ind, depth=nlabels), axis=-2)
+
+    correct_prediction = tf.equal(x1_nhot, x2)
 
     if self.all_labels_true:
-      all_labels = tf.reduce_min(tf.cast(correct_prediction, tf.float32), 1)
+      all_labels = tf.reduce_min(tf.cast(correct_prediction, tf.float32), -1)
       accuracy2 = tf.reduce_mean(all_labels)
       return accuracy2
     else:
-      accuracy1 = tf.reduce_mean(tf.cast(correct_prediction, tf.float32))
+      # here we have some calculation to do
+      accuracy1 = tf.reduce_sum(tf.cast(correct_prediction, tf.float32), -1)
+      accuracy1 = (accuracy1 - tf.cast((nlabels - 2*n),tf.float32))/tf.cast((2*n),tf.float32)
+      accuracy1 = tf.reduce_mean(accuracy1)
       return accuracy1
-
-    #return tf.stack([accuracy1, accuracy2]),
 
 
 
