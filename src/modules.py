@@ -1,5 +1,5 @@
 # Copyright 2017,2018 Charles Wilmot, Markus Ernst.
-# March 2018
+# June 2018
 # =============================================================================
 
 """
@@ -1062,17 +1062,17 @@ class TimeConvolutionalLayerModule(TimeComposedModule):
   """
   TimeConvolutionalLayerModule inherits from TimeComposedModule. This composed module
   performs a convolution and applies a bias and an activation function.
-  It does allow recursions
+  It does allow recursions on two different hooks (input and preactivation)
   """
   def define_inner_modules(self, name, activation, filter_shape, strides, bias_shape, padding='SAME'):
     self.input_module = TimeAddModule(name + "_input")
     self.conv = Conv2DModule(name + "_conv", filter_shape, strides, padding=padding)
     self.bias = BiasModule(name + "_bias", bias_shape)
-    self.preactivation = AddModule(name + "_preactivation")
+    self.preactivation = TimeAddModule(name + "_preactivation")
     self.output_module = ActivationModule(name + "_output", activation)
     self.conv.add_input(self.input_module)
-    self.preactivation.add_input(self.conv)
-    self.preactivation.add_input(self.bias)
+    self.preactivation.add_input(self.conv, 0)
+    self.preactivation.add_input(self.bias, 0)
     self.output_module.add_input(self.preactivation)
 
 
@@ -1082,19 +1082,19 @@ class TimeConvolutionalLayerWithBatchNormalizationModule(TimeComposedModule):
   TimeConvolutionalLayerWithBatchNormalizationModule inherits from TimeComposedModule.
   This composed module performs a convolution, applies a bias, batchnormalizes the
   preactivation and then applies an activation function.
-  It does allow recursions
+  It does allow recursions on two different hooks (input and preactivation)
   """
   def define_inner_modules(self, name, n_out, is_training, beta_init, gamma_init,
         ema_decay_rate, activation, filter_shape, strides, bias_shape, padding='SAME'):
     self.input_module = TimeAddModule(name + "_input")
     self.conv = Conv2DModule(name + "_conv", filter_shape, strides, padding=padding)
     #self.bias = BiasModule(name + "_bias", bias_shape)
-    self.preactivation = AddModule(name + "_preactivation")
+    self.preactivation = TimeAddModule(name + "_preactivation")
     self.batchnorm = BatchNormalizationModule(name + "_batchnorm", n_out, is_training, beta_init, gamma_init,
         ema_decay_rate, moment_axes=[0,1,2], variance_epsilon=1e-3)
     self.output_module = ActivationModule(name + "_output", activation)
     self.conv.add_input(self.input_module)
-    self.preactivation.add_input(self.conv)
+    self.preactivation.add_input(self.conv, 0)
     #self.preactivation.add_input(self.bias)
     self.batchnorm.add_input(self.preactivation)
     self.output_module.add_input(self.batchnorm)
