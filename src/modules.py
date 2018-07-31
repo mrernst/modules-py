@@ -1,5 +1,5 @@
 # Copyright 2017,2018 Charles Wilmot, Markus Ernst.
-# June 2018
+# July 2018
 # =============================================================================
 
 """
@@ -575,6 +575,37 @@ class ErrorModule(OperationModule):
       ?:                    1D tensor, error-value
     """
     return self.error_func(x1, x2, name=self.name)
+
+
+class BoolClassificationModule(OperationModule):
+  """
+  BoolClassificationModule inherits from OperationModule. It takes two modules as input
+  and compares both element-wise
+  """
+
+  def __init__(self, name):
+    """
+    Creates BoolClassificationModule object
+
+    Args:
+      name:                 string, name of the Module
+    """
+    super().__init__(name)
+
+  ## apply the function passed in the constructor its two input modules
+  def operation(self, x1, x2):
+    """
+    operation takes an BoolClassificationModule, a tensor x1, a tensor x2 and returns the output of
+    error_func as defined in __init__
+
+    Args:
+      x1:                   tensor, logits
+      x2:                   tensor, labels
+    Returns:
+      ?:                    1D tensor, error-value
+    """
+    return tf.equal(x1,x2)
+
 
 
 class DropoutModule(OperationModule):
