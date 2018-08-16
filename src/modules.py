@@ -503,7 +503,6 @@ class CropAndConcatModule(TimeOperationModule):
       return tf.concat([x1_crop, x2], self.axis)
 
 
-
 class FullyConnectedModule(VariableModule):
   """
   FullyConnectedModule inherits from VariableModule. It takes a single module as input
@@ -675,87 +674,6 @@ class NormalizationModule(OperationModule):
     casted_x = tf.cast(x, dtype=self.dtype)
     rescaled_x = (casted_x / 255) * (self.inp_max - self.inp_min) - self.inp_min
     return rescaled_x
-
-
-class PreprocessModule(OperationModule):
-  """
-  PreprocessModule inherits from OperationModule. It takes a single module as input
-  and …
-  """
-
-  def __init__(self, name, angle_max, brightness_max_delta, contrast_lower, contrast_upper, hue_max_delta, random_seed = None):
-    """
-    Creates NormalizationModule object
-
-    Args:
-      name:                        string, name of the Module
-      angle_max:                   float, angle at 1 sigma
-      brightness_max_delta:        float, must be non-negative.
-      contrast_lower:              float, Lower bound for the random contrast factor.
-      contrast_upper:              float, Upper bound for the random contrast factor.
-      hue_max_delta:               float, Maximum value for the random delta.
-      random_seed:                 int, An operation-specific seed
-    """
-    super().__init__(name, angle_max, brightness_max_delta, contrast_lower, contrast_upper,hue_max_delta, random_seed)
-    self.angle_max = angle_max
-    self.brightness_max_delta = brightness_max_delta
-    self.contrast_lower = contrast_lower
-    self.contrast_upper = contrast_upper
-    self.hue_max_delta = hue_max_delta
-    self.random_seed = random_seed
-
-  def operation(self, x):
-    """
-    operation takes a NormalizationModule, a tensor x and returns a tensor the same shape
-    …
-
-    Args:
-      x:                    tensor, RGBA image
-    Returns:
-      ?:                    tensor, same shape as x
-    """
-    batch_size = x[0]
-    
-    angles = self.angle_max * tf.random_normal(
-        batch_size,
-        mean=0.0,
-        stddev=1.0,
-        dtype=tf.float32,
-        seed=self.random_seed,
-        name=None
-    )
-    
-    preprocessed_x = tf.contrib.image.rotate(
-        x,
-        angles,
-        interpolation='NEAREST',
-        name=None
-    )
-    
-    preprocessed_x = tf.image.random_brightness(
-        preprocessed_x,
-        self.brightness_max_delta,
-        seed=self.random_seed
-    )
-    preprocessed_x = tf.image.random_contrast(
-        preprocessed_x,
-        self.contrast_lower,
-        self.contrast_upper,
-        seed=self.random_seed
-    )
-    
-    preprocessed_x = tf.image.random_hue(
-        preprocessed_x,
-        self.hue_max_delta,
-        seed=self.random_seed
-    )
-    
-    preprocessed_x = tf.image.random_flip_left_right(
-        preprocessed_x,
-        seed=self.random_seed
-    )
-    
-    return preprocessed_x
 
 
 class OptimizerModule(OperationModule):
