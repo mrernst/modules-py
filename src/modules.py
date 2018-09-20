@@ -1,5 +1,5 @@
 # Copyright 2017,2018 Charles Wilmot, Markus Ernst.
-# July 2018
+# September 2018
 # =============================================================================
 
 """
@@ -244,7 +244,7 @@ class ConstantVariableModule(VariableModule):
     @param name str, implementation must be changed, name can be accessed from self
     """
 
-    self.variable = tf.Variable(tf.zeros(shape=self.shape, dtype=self.dtype), name=name)
+    self.variable = tf.Variable(tf.zeros(shape=self.shape, dtype=self.dtype), name=name, trainable=False)
 
 
 
@@ -797,7 +797,7 @@ class NHotBatchAccuracyModule(OperationModule):
 class ConstantPlaceholderModule(PlaceholderModule):
   """
   ConstantPlaceholderModule inherits from PlaceholderModule and reserves a place
-  to feed in data. Eventual input modules to BiasModule are disregarded.
+  to feed in data. Eventual input modules to ConstantPlaceholderModule are disregarded.
   """
 
   def operation(self):
@@ -818,7 +818,7 @@ class TimeVaryingPlaceholderModule(PlaceholderModule):
 
   def __init__(self, name, shape, dtype=tf.float32):
     """
-    Creates a TimeVaryingPlaceholderModuleme object
+    Creates a TimeVaryingPlaceholderModule object
 
     Args:
       name:                 string, name of the Module
@@ -845,8 +845,8 @@ class TimeVaryingPlaceholderModule(PlaceholderModule):
     self.outputs[0] = self.delayed(self.outputs[1])
 
   def delayed(self, v):
-    v_curr = tf.Variable(tf.zeros(shape=v.shape))
-    v_prev = tf.Variable(tf.zeros(shape=v.shape))
+    v_curr = tf.Variable(tf.zeros(shape=v.shape), trainable=False)
+    v_prev = tf.Variable(tf.zeros(shape=v.shape), trainable=False)
     with tf.control_dependencies([v_prev.assign(v_curr)]):
       with tf.control_dependencies([v_curr.assign(v)]):
         v_curr = tf.identity(v_curr)
@@ -1166,22 +1166,22 @@ class FullyConnectedLayerWithBatchNormalizationModule(ComposedModule):
     self.batchnorm.add_input(self.preactivation)
     self.output_module.add_input(self.batchnorm)
 
-
-class PreprocessModule(ComposedModule):
+class AugmentModule(ComposedModule):
   """
-  PreprocessModule inherits from ComposedModule. This composed module
+  AugmentModule inherits from ComposedModule. This composed module
   performs a rotation of an image, changes its image properties and crops it
   It does not allow recursions
   """
-  def define_inner_modules(self, name, image_width, angle_max=10., brightness_max_delta=.5, contrast_lower=.5, contrast_upper=1., hue_max_delta=.05):
-    self.input_module = RotateImageModule('_rotate', angle_max)
-    self.centercrop = CropModule('_centercrop', image_width//10*5, image_width//10*5)
-    self.imagestats = RandomImageStatsModule('_imageprops', brightness_max_delta, contrast_lower, contrast_upper, hue_max_delta)
-    self.output_module = RandomCropModule('_randomcrop', image_width//10*4, image_width//10*4)
+  def define_inner_modules(self, name, is_training, image_width, angle_max=10., brightness_max_delta=.5, contrast_lower=.5, contrast_upper=1., hue_max_delta=.05):
+    self.input_module = RotateImageModule('_rotate', is_training, angle_max)
+    self.centercrop = AugmentCropModule('_centercrop', is_training, image_width//10*5, image_width//10*5)
+    self.imagestats = RandomImageStatsModule('_imageprops', is_training, brightness_max_delta, contrast_lower, contrast_upper, hue_max_delta)
+    self.output_module = RandomCropModule('_randomcrop', is_training, image_width//10*4, image_width//10*4)
     # wire modules
     self.centercrop.add_input(self.input_module)
     self.imagestats.add_input(self.centercrop)
     self.output_module.add_input(self.imagestats)
+
 
 
 class RotateImageModule(OperationModule):
@@ -1190,16 +1190,18 @@ class RotateImageModule(OperationModule):
   and applies a rotation.
   """
 
-  def __init__(self, name, angle_max, random_seed = None):
+  def __init__(self, name, is_training, angle_max, random_seed = None):
     """
     Creates RotateImageModule object
 
     Args:
       name:                        string, name of the Module
+      is_training:                 bool, indicates training or testing
       angle_max:                   float, angle at 1 sigma
       random_seed:                 int, An operation-specific seed
     """
-    super().__init__(name, angle_max, random_seed)
+    super().__init__(name, is_training, angle_max, random_seed)
+    self.is_training = is_training
     self.angle_max = angle_max
     self.random_seed = random_seed
 
@@ -1226,12 +1228,17 @@ class RotateImageModule(OperationModule):
         name=None
     )
     
-    rotated_x = tf.contrib.image.rotate(
+    def apply_transformation():
+      return tf.contrib.image.rotate(
         x,
         angles,
-        interpolation='NEAREST',
-        name=None
-    )
+        interpolation='NEAREST'
+        )
+    
+    def ret_identity():
+      return tf.identity(x)
+    
+    rotated_x = tf.cond(self.is_training, apply_transformation, ret_identity)
     
     return rotated_x
 
@@ -1242,19 +1249,21 @@ class RandomImageStatsModule(OperationModule):
   and …
   """
 
-  def __init__(self, name, brightness_max_delta, contrast_lower, contrast_upper, hue_max_delta, random_seed = None):
+  def __init__(self, name, is_training, brightness_max_delta, contrast_lower, contrast_upper, hue_max_delta, random_seed = None):
     """
     Creates RandomImageStatsModule object
 
     Args:
       name:                        string, name of the Module
+      is_training:                 bool, indicates training or testing
       brightness_max_delta:        float, must be non-negative.
       contrast_lower:              float, Lower bound for the random contrast factor.
       contrast_upper:              float, Upper bound for the random contrast factor.
       hue_max_delta:               float, Maximum value for the random delta.
       random_seed:                 int, An operation-specific seed
     """
-    super().__init__(name, brightness_max_delta, contrast_lower, contrast_upper,hue_max_delta, random_seed)
+    super().__init__(name, is_training, brightness_max_delta, contrast_lower, contrast_upper,hue_max_delta, random_seed)
+    self.is_training = is_training
     self.brightness_max_delta = brightness_max_delta
     self.contrast_lower = contrast_lower
     self.contrast_upper = contrast_upper
@@ -1285,16 +1294,24 @@ class RandomImageStatsModule(OperationModule):
         seed=self.random_seed
     )
     
-    hue_x = tf.image.random_hue(
-        contrast_x,
-        self.hue_max_delta,
-        seed=self.random_seed
-    )
+    # not supported on tf 1.4
+    #hue_x = tf.image.random_hue(
+    #    contrast_x,
+    #    self.hue_max_delta,
+    #    seed=self.random_seed
+    #)
+        
+    #flipped_x = tf.image.random_flip_left_right(
+    #    hue_x,
+    #    seed=self.random_seed
+    #)
+    def apply_transformation():
+      return tf.map_fn(tf.image.random_flip_left_right, contrast_x)
     
-    flipped_x = tf.image.random_flip_left_right(
-        hue_x,
-        seed=self.random_seed
-    )
+    def ret_identity():
+      return tf.identity(x)
+    
+    flipped_x = tf.cond(self.is_training, apply_transformation, ret_identity)
     
     return flipped_x
 
@@ -1304,16 +1321,18 @@ class RandomCropModule(OperationModule):
   RandomCropModule inherits from OperationModule. It takes a single input module and
   resizes it.
   """
-  def __init__(self, name, height, width):
+  def __init__(self, name, is_training, height, width):
      """
      Creates a RandomCropModule object
 
      Args:
        name:                 string, name of the Module
+       is_training:                 bool, indicates training or testing
        height:               int, desired output image height
        weight:               int, desired output image width
      """
      super().__init__(name, height, width)
+     self.is_training = is_training
      self.height = height
      self.width = width
 
@@ -1329,8 +1348,55 @@ class RandomCropModule(OperationModule):
     """
     batchsize =x.shape[0]
     channels = x.shape[-1]
-    ret = tf.random_crop(x, [batchsize, self.height, self.width, channels])
+    
+    def apply_transformation():
+      return tf.random_crop(x, [batchsize, self.height, self.width, channels])
+    def ret_identity():
+      return tf.identity(x)
+      
+    ret = tf.cond(self.is_training, apply_transformation, ret_identity)
     return ret
+
+
+class AugmentCropModule(OperationModule):
+  """
+  AugmentCropModule inherits from OperationModule. It takes a single input module and
+  resizes it. It is similar to CropModule, but aware of is_training.
+  """
+  def __init__(self, name, is_training, height, width):
+     """
+     Creates a CropModule object
+
+     Args:
+       name:                 string, name of the Module
+       is_training:          bool, indicates training or testing
+       height:               int, desired output image height
+       weight:               int, desired output image width
+     """
+     super().__init__(name, height, width)
+     self.is_training = is_training
+     self.height = height
+     self.width = width
+
+  def operation(self, x):
+    """
+    operation takes a AugmentCropModule and x, a tensor and performs a cropping operation of
+    the input module in the current time slice
+
+    Args:
+      x:                    tensor
+    Returns:
+      ret:                  tensor, (B,self.height,self.width,D)
+    """
+    def apply_transformation():
+      return tf.image.resize_image_with_crop_or_pad(x, self.height, self.width)
+    def apply_alt_transformation():
+      return tf.image.resize_image_with_crop_or_pad(x, self.height//5*4, self.width//5*4)
+    
+    ret = tf.cond(self.is_training, apply_transformation, apply_alt_transformation)
+    return ret
+
+
 
 
 if __name__ == '__main__':
