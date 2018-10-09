@@ -1,7 +1,0 @@
-<map id="modules.ComposedModule" name="modules.ComposedModule">
-<area shape="rect" id="node5" href="$classmodules_1_1_convolutional_layer_module.html" title="This composed module performs a convolution and applies a bias and an activation function. " alt="" coords="5,244,192,285"/>
-<area shape="rect" id="node6" href="$classmodules_1_1_fully_connected_layer_module.html" title="This composed module performs a full connection and applies a bias and an activation function..." alt="" coords="217,244,415,285"/>
-<area shape="rect" id="node2" href="$classmodules_1_1_abstract_composed_module.html" title="modules.AbstractComposed\lModule" alt="" coords="12,80,199,121"/>
-<area shape="rect" id="node3" href="$classmodules_1_1_module.html" title="Base class of a module. " alt="" coords="148,5,265,32"/>
-<area shape="rect" id="node4" href="$classmodules_1_1_operation_module.html" title="An operation module is a module that can perform an operation on the output of an other module in the..." alt="" coords="223,87,396,114"/>
-</map>

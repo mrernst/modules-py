@@ -1,8 +1,0 @@
-<map id="modules.VariableModule" name="modules.VariableModule">
-<area shape="rect" id="node4" href="$classmodules_1_1_bias_module.html" title="Module to create a bias, that can be added to an other tensor inputs modules of this module are not t..." alt="" coords="646,5,789,32"/>
-<area shape="rect" id="node5" href="$classmodules_1_1_conv2_d_module.html" title="Module to perform a convolution. " alt="" coords="635,56,800,83"/>
-<area shape="rect" id="node6" href="$classmodules_1_1_conv2_d_transpose_module.html" title="Module to perform a deconvolution. " alt="" coords="604,107,831,133"/>
-<area shape="rect" id="node7" href="$classmodules_1_1_fully_connected_module.html" title="Module to perform a matrix multiplication. " alt="" coords="613,157,821,184"/>
-<area shape="rect" id="node2" href="$classmodules_1_1_operation_module.html" title="An operation module is a module that can perform an operation on the output of an other module in the..." alt="" coords="171,81,344,108"/>
-<area shape="rect" id="node3" href="$classmodules_1_1_module.html" title="Base class of a module. " alt="" coords="5,81,123,108"/>
-</map>

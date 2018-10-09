@@ -1,5 +1,0 @@
-<map id="modules.Conv2DTransposeModule" name="modules.Conv2DTransposeModule">
-<area shape="rect" id="node2" href="$classmodules_1_1_variable_module.html" title="This class allows a module to hold a tensorflow variable. " alt="" coords="37,155,201,181"/>
-<area shape="rect" id="node3" href="$classmodules_1_1_operation_module.html" title="An operation module is a module that can perform an operation on the output of an other module in the..." alt="" coords="32,80,205,107"/>
-<area shape="rect" id="node4" href="$classmodules_1_1_module.html" title="Base class of a module. " alt="" coords="60,5,177,32"/>
-</map>

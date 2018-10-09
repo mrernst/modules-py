@@ -1,6 +1,0 @@
-<map id="modules.FullyConnectedLayerModule" name="modules.FullyConnectedLayerModule">
-<area shape="rect" id="node2" href="$classmodules_1_1_composed_module.html" title="This class is an abstract class which allows when overwritten to create a module that is composed of ..." alt="" coords="110,169,290,196"/>
-<area shape="rect" id="node3" href="$classmodules_1_1_abstract_composed_module.html" title="modules.AbstractComposed\lModule" alt="" coords="5,80,192,121"/>
-<area shape="rect" id="node4" href="$classmodules_1_1_module.html" title="Base class of a module. " alt="" coords="141,5,259,32"/>
-<area shape="rect" id="node5" href="$classmodules_1_1_operation_module.html" title="An operation module is a module that can perform an operation on the output of an other module in the..." alt="" coords="216,87,389,114"/>
-</map>
