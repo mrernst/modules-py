@@ -672,7 +672,7 @@ class NormalizationModule(OperationModule):
       ?:                    tensor, same shape as x
     """
     casted_x = tf.cast(x, dtype=self.dtype)
-    rescaled_x = (casted_x / 255) * (self.inp_max - self.inp_min) - self.inp_min
+    rescaled_x = (casted_x / 255) * (self.inp_max - self.inp_min) - tf.abs(self.inp_min)
     return rescaled_x
 
 
