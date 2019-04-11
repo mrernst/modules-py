@@ -1402,8 +1402,6 @@ class AugmentCropModule(OperationModule):
 
 
 
-
-
 #######################
 ## experimental modules
 #######################
