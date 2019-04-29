@@ -577,6 +577,39 @@ class ErrorModule(OperationModule):
     return self.error_func(x1, x2, name=self.name)
 
 
+class LossModule(OperationModule):
+  """
+  LossModule inherits from OperationModule. It takes one module as input
+  and computes a any tensorflow operation on one and only
+  one tensor)
+  """
+
+  def __init__(self, name, loss_func):
+    """
+    Creates LossModule object
+
+    Args:
+      name:                 string, name of the Module
+      error_func:           callable, function that takes exactly 1 args, returns a tf.tensor
+    """
+    super().__init__(name, loss_func)
+    self.loss_func = loss_func
+
+  ## apply the function passed in the constructor its two input modules
+  def operation(self, x1):
+    """
+    operation takes an LossModule and tensor x1 and returns the output of
+    loss_function as defined in __init__
+
+    Args:
+      x1:                   tensor
+    Returns:
+      ?:                    1D tensor, loss-value
+    """
+    return self.loss_func(x1, name=self.name)
+
+
+
 class BoolClassificationModule(OperationModule):
   """
   BoolClassificationModule inherits from OperationModule. It takes two modules as input
@@ -673,7 +706,8 @@ class NormalizationModule(OperationModule):
       ?:                    tensor, same shape as x
     """
     casted_x = tf.cast(x, dtype=self.dtype)
-    rescaled_x = (casted_x / 255) * (self.inp_max - self.inp_min) -  tf.cast(abs(self.inp_min), dtype=self.dtype)
+    rescaled_x = (self.inp_max-self.inp_min) * (casted_x - tf.reduce_min(casted_x)) / (tf.reduce_max(casted_x) - tf.reduce_min(casted_x)) + self.inp_min
+    # (inp_max-inp_min)*(x-x.min)/(x.max - x.min) + inp_min
     return rescaled_x
 
 
@@ -1414,6 +1448,9 @@ class InputCanvasModule(OperationModule):
     self.placeholder = tf.placeholder(shape=shape, dtype=dtype, name=self.name)
     self.canvas = tf.Variable(tf.truncated_normal(shape=self.shape, stddev=0.1), name=name)
     #self.canvas = tf.Variable(tf.zeros(shape=self.shape), name=name)
+    #self.canvas = tf.get_variable(name=self.name, shape=[],dtype=tf.float32)
+    
+    
     
   def operation(self):
     def return_placeholder():
@@ -1569,6 +1606,46 @@ class UnConvolutionModule(OperationModule):
 
     return tf.nn.conv2d_transpose(x, weights, self.output_shape,
                                     strides=self.strides, padding=self.padding, name=self.name)
+
+
+
+
+class PixelwiseNormalizationModule(OperationModule):
+  """
+  PixelwiseNormalizationModule inherits from OperationModule. It takes a single module as input
+  and applies pixel wise normalization across the dataset to it
+  """
+
+  def __init__(self, name, input_shape, dtype=tf.float32):
+    """
+    Creates PixelwiseNormalizationModule object
+
+    Args:
+      name:                 string, name of the Module
+      dtype:                type, dtype of the tensor
+    """
+    super().__init__(name)
+    self.dtype=dtype
+    self.sxx = tf.Variable(tf.ones(input_shape), trainable=False)
+    self.sx = tf.Variable(tf.zeros(input_shape), trainable=False)
+    self.n = tf.Variable(1., trainable=False)
+  def operation(self, x):
+    """
+    operation takes a PixelwiseNormalizationModule, a tensor x and returns a tensor the same shape
+    with values rescaled between based on the input statistics. If statistics are not assigned,
+    operation just returns the original tensor
+
+    Args:
+      x:                    tensor, RGBA image
+    Returns:
+      ?:                    tensor, same shape as x
+    """
+    sd = tf.math.sqrt(tf.subtract(tf.math.multiply(self.n,self.sxx),tf.math.square(self.sx)))/self.n 
+    m = self.sx/self.n
+    rescaled_x = (tf.cast(x, self.dtype) - m)/sd
+    
+    return tf.where(tf.is_nan(rescaled_x), tf.zeros_like(rescaled_x), rescaled_x)
+
 
 if __name__ == '__main__':
 
