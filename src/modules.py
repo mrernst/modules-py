@@ -706,9 +706,16 @@ class NormalizationModule(OperationModule):
       ?:                    tensor, same shape as x
     """
     casted_x = tf.cast(x, dtype=self.dtype)
-    rescaled_x = (self.inp_max-self.inp_min) * (casted_x - tf.reduce_min(casted_x)) / (tf.reduce_max(casted_x) - tf.reduce_min(casted_x)) + self.inp_min
-    # (inp_max-inp_min)*(x-x.min)/(x.max - x.min) + inp_min
-    return rescaled_x
+    
+    def apply_transformation():
+      rescaled_x = (self.inp_max-self.inp_min) * (casted_x - tf.reduce_min(casted_x)) / (tf.reduce_max(casted_x) - tf.reduce_min(casted_x)) + self.inp_min
+      return rescaled_x
+    def ret_identity():
+      return casted_x
+      
+    ret = tf.cond(tf.equal(tf.reduce_max(casted_x),0.), ret_identity, apply_transformation)
+    
+    return ret
 
 
 class OptimizerModule(OperationModule):
