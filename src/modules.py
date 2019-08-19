@@ -1470,6 +1470,51 @@ class InputCanvasModule(OperationModule):
 
 
 
+class InputSwitchModule(OperationModule):
+  """
+  InputCanvasModule is an abstract class. It inherits from OperationModule and takes no input.
+  It holds a place where the user can feed in a value to be used in the graph. Additionally
+  it creates a trainable variable of the same size to visualize network internals.
+  """
+  def __init__(self, name, shape, alt_input, dtype=tf.float32):
+    super().__init__(name, shape, alt_input, dtype)
+    self.shape = shape
+    self.dtype = dtype
+    self.alt_input = alt_input
+    self.placeholder = tf.placeholder(shape=shape, dtype=dtype, name=self.name)    
+    
+    
+  def operation(self, x):
+    def return_placeholder():
+      return tf.cast(self.placeholder, tf.float32)
+    def return_alt_input():
+      return x
+    
+    ret = tf.cond(self.alt_input, return_alt_input, return_placeholder)
+    return ret
+
+
+class SwitchModule(OperationModule):
+  """
+  SwitchModule inherits from OperationModule.
+  It takes exactly two modules as an input and a boolean to decide
+  which input to forward
+  """
+  def __init__(self, name, alt_input):
+    super().__init__(name, alt_input)
+    self.alt_input = alt_input
+    
+    
+  def operation(self, x1, x2):
+    def return_input1():
+      return x1
+    def return_input2():
+      return x2
+    
+    ret = tf.cond(self.alt_input, return_input2, return_input1)
+    return ret
+
+
 
 class MaxPoolingWithArgmaxModule(OperationModule):
   """
